@@ -12,6 +12,6 @@ def get_training_args():
         save_total_limit=3,
         num_train_epochs=1,
         predict_with_generate=True,
-        fp16=False,
+        fp16=True,
     )
     return args
