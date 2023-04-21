@@ -18,6 +18,8 @@ def get_training_args(config: ExperimentConfig):
         per_device_train_batch_size=config.batch_size,
         per_device_eval_batch_size=config.batch_size,
         include_inputs_for_metrics=True,
+        load_best_model_at_end=True,
+        metric_for_best_model=config.validation_metric,
         weight_decay=config.weight_decay,
         max_grad_norm=config.max_grad_norm,
         warmup_ratio=config.warmup_ratio,

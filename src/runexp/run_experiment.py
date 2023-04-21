@@ -3,6 +3,7 @@ import datetime
 import os
 import json
 
+import torch
 import transformers
 
 from dataproc import DatasetWrapper
@@ -52,7 +53,7 @@ def run_single_experiment(config: ExperimentConfig):
     logging.info("Saving config to output dir")
     config.dump_to_file(file_path=os.path.join(config.output_dir, "config.json"))
 
-    logging.info("Starting training")
+    logging.info("Starting train_and_eval")
     eval_results = model.train_and_eval(train_data=training_subset,
                                         validation_data=validation_subset,
                                         training_arguments=training_args,
@@ -60,5 +61,8 @@ def run_single_experiment(config: ExperimentConfig):
 
     logging.info("Saving results to output dir")
     save_eval_results(eval_results=eval_results, file_path=os.path.join(config.output_dir, "eval_results.json"))
+
+    if config.do_use_gpu:
+        torch.cuda.empty_cache()
 
     return model, eval_results

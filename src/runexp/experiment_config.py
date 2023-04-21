@@ -16,6 +16,7 @@ class DefaultValues:
     GENERATION_NUM_BEAMS = 4
 
     NUM_CHECKPOINTS_TO_SAVE = 2
+    VALIDATION_METRIC = "rougeL"
 
 
 class ExperimentConfig:
@@ -35,9 +36,11 @@ class ExperimentConfig:
                  warmup_ratio: float = DefaultValues.WARMUP_RATIO,
                  generation_num_beams: int = DefaultValues.GENERATION_NUM_BEAMS,
                  num_checkpoints_to_save: int = DefaultValues.NUM_CHECKPOINTS_TO_SAVE,
+                 validation_metric: str = DefaultValues.VALIDATION_METRIC,
                  additional_training_args: Optional[dict] = None,
                  additional_metrics: Optional[list] = None,
-                 output_dir: Optional[str] = None):
+                 experiment_name: Optional[str] = None,
+                 output_dir: Optional[str] = None,):
         self.model_name = model_name
         self.dataset_name = dataset_name
         self.labeled_train_set_size = labeled_train_set_size
@@ -57,10 +60,12 @@ class ExperimentConfig:
         self.warmup_ratio = warmup_ratio
         self.generation_num_beams = generation_num_beams
         self.num_checkpoints_to_save = num_checkpoints_to_save
+        self.validation_metric = validation_metric
 
         self.additional_training_args = additional_training_args
         self.additional_metrics = additional_metrics
 
+        self.experiment_name = experiment_name
         self.output_dir = output_dir
 
     @property
@@ -68,7 +73,8 @@ class ExperimentConfig:
         return self.cuda_device is not None
 
     def __repr__(self):
-        return "{}_{}_{}".format(self.model_name, self.dataset_name, self.random_seed)
+        prefix = "{}_".format(self.experiment_name) if self.experiment_name else ""
+        return "{}{}_{}_{}".format(prefix, self.model_name, self.dataset_name, self.random_seed)
 
     @staticmethod
     def deserialize(data: dict) -> "ExperimentConfig":
@@ -89,8 +95,10 @@ class ExperimentConfig:
             warmup_ratio=data.get("warmup_ratio", DefaultValues.WARMUP_RATIO),
             generation_num_beams=data.get("generation_num_beams", DefaultValues.GENERATION_NUM_BEAMS),
             num_checkpoints_to_save=data.get("num_checkpoints_to_save", DefaultValues.NUM_CHECKPOINTS_TO_SAVE),
+            validation_metric=data.get("validation_metric", DefaultValues.VALIDATION_METRIC),
             additional_training_args=data.get("additional_training_args"),
             additional_metrics=data.get("additional_metrics"),
+            experiment_name=data.get("experiment_name"),
             output_dir=data.get("output_dir"),
         )
 
@@ -112,8 +120,10 @@ class ExperimentConfig:
             "warmup_ratio": self.warmup_ratio,
             "generation_num_beams": self.generation_num_beams,
             "num_checkpoints_to_save": self.num_checkpoints_to_save,
+            "validation_metric": self.validation_metric,
             "additional_training_args": self.additional_training_args,
             "additional_metrics": self.additional_metrics,
+            "experiment_name": self.experiment_name,
             "output_dir": self.output_dir,
         }
         return data
