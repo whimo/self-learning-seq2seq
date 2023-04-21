@@ -1,17 +1,14 @@
-from typing import Optional
+import logging
 
 from transformers import AutoTokenizer
 from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqTrainingArguments, Seq2SeqTrainer
 
 from runexp import ExperimentConfig
 
-#import metrics.compute_metrics as cm
-
 
 class ModelWrapper:
     def __init__(self,
                  hf_checkpoint_path: str,
-                 compute_metrics_fn: Optional[callable] = None,
                  hf_model_class=AutoModelForSeq2SeqLM,
                  hf_tokenizer_class=AutoTokenizer,
                  hf_data_collator_class=DataCollatorForSeq2Seq,
@@ -21,8 +18,6 @@ class ModelWrapper:
         self.tokenizer = None
 
         self.hf_checkpoint_path = hf_checkpoint_path
-
-        self.compute_metrics_fn = compute_metrics_fn
 
         self.hf_model_class = hf_model_class
         self.hf_tokenizer_class = hf_tokenizer_class
@@ -41,19 +36,17 @@ class ModelWrapper:
         elif config.model_name.startswith("t5-"):
             hf_checkpoint_path = config.model_name
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Unsupported model: {}".format(config.model_name))
 
+        logging.info("Constructing model from Huggingface checkpoint %s", hf_checkpoint_path)
 
         model = ModelWrapper(
             hf_checkpoint_path=hf_checkpoint_path,
         )
         model.load_from_huggingface()
-        
-        #model.compute_metrics_fn = lambda eval_pred: cm.compute_metrics(eval_pred, model.tokenizer, 4)
-        
         return model
 
-    def train_and_eval(self, training_arguments, train_data, validation_data):
+    def train_and_eval(self, training_arguments, train_data, validation_data, compute_metrics_fn):
         assert isinstance(training_arguments, self.hf_training_arguments_class)
 
         data_collator = self.hf_data_collator_class(tokenizer=self.tokenizer, model=self.model,
@@ -66,8 +59,11 @@ class ModelWrapper:
             eval_dataset=validation_data,
             data_collator=data_collator,
             tokenizer=self.tokenizer,
-            compute_metrics=self.compute_metrics_fn
+            compute_metrics=compute_metrics_fn
         )
 
+        logging.info("Starting training")
         trainer.train()
+
+        logging.info("Starting evaluation")
         return trainer.evaluate()

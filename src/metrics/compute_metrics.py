@@ -5,11 +5,7 @@ from evaluate import load
 from tqdm import tqdm
 
 from .metrics import (
-    SentBert,
     calculate_abstractiveness_scores,
-    calculate_bart_score,
-    calculate_cola_model_predictions,
-    calculate_summac_score,
     decode,
     pair_bleu,
 )
@@ -17,7 +13,6 @@ from .metrics import (
 SACREBLEU = load("sacrebleu")
 ROUGE = load("rouge")
 BERTSCORE = load("bertscore")
-SENTBERT = SentBert()
 
 
 def compute_metrics(
@@ -29,9 +24,9 @@ def compute_metrics(
         "bertscore",
         "sentbert",
         "summac",
+        "cola",
     ),
     aggregate_cola: bool = False,
-    num_proc: Optional[int] = None,
 ) -> Dict[str, float]:
     generated_texts, reference_texts, *original_texts = decode(eval_preds, tokenizer)
     if len(original_texts) > 0:
@@ -49,12 +44,6 @@ def compute_metrics(
             for pred in eval_preds.predictions
         ]
     )
-    result["cola_score"] = calculate_cola_model_predictions(
-        generated_texts,
-        aggregate=aggregate_cola,
-        num_proc=num_proc,
-        batch_size=batch_size
-    )
 
     ### Metrics that use both the generated texts and the original texts and
     ### those than are not ''obliged'' to use reference texts
@@ -67,14 +56,28 @@ def compute_metrics(
     result["char_length_src_rel"] = np.mean(
         result["char_length_gen"] / src_char_lengths
     )
-    # Relative cola score
-    src_cola_score = calculate_cola_model_predictions(
-        original_texts,
-        aggregate=aggregate_cola,
-        num_proc=num_proc,
-        batch_size=batch_size,
-    )
-    result["cola_score_src_rel"] = result["cola_score"] / src_cola_score
+
+    if "cola" in add_metrics_to_use:
+        from .metrics import calculate_cola_model_predictions
+        result["cola_score"] = calculate_cola_model_predictions(
+            generated_texts,
+            aggregate=aggregate_cola,
+            batch_size=batch_size
+        )
+        # Relative cola score
+        src_cola_score = calculate_cola_model_predictions(
+            original_texts,
+            aggregate=aggregate_cola,
+            batch_size=batch_size,
+        )
+        result["cola_score_src_rel"] = result["cola_score"] / src_cola_score
+        # Relative cola score
+        ref_cola_score = calculate_cola_model_predictions(
+            reference_texts,
+            aggregate=aggregate_cola,
+            batch_size=batch_size
+        )
+        result["cola_score_rel"] = result["cola_score"] / ref_cola_score
 
     if "bertscore" in add_metrics_to_use:
         bertscore_art = BERTSCORE.compute(
@@ -91,10 +94,12 @@ def compute_metrics(
         )
     )
     if "summac" in add_metrics_to_use:
+        from .metrics import calculate_summac_score
         result.update(
             calculate_summac_score(generated_texts, original_texts, reference_texts, batch_size=batch_size)
         )
     if "bartscore" in add_metrics_to_use:
+        from .metrics import calculate_bart_score
         result.update(
             calculate_bart_score(
                 preds=generated_texts,
@@ -104,7 +109,9 @@ def compute_metrics(
             )
         )
     if "sentbert" in add_metrics_to_use:
-        result["sentbert_src"] = SENTBERT(
+        from .metrics import SentBert
+        sentbert = SentBert()
+        result["sentbert_src"] = sentbert(
             original_texts, generated_texts, batch_size=batch_size
         )
     ### Metrics that use both the generated texts and the reference texts
@@ -139,14 +146,6 @@ def compute_metrics(
         result["word_length_rel"] = result["word_length_gen"] / ref_word_lengths
         result["char_length_rel"] = result["char_length_gen"] / ref_char_lengths
         result["token_length_rel"] = result["token_length_gen"] / ref_token_lengths
-        # Relative cola score
-        ref_cola_score = calculate_cola_model_predictions(
-            reference_texts,
-            aggregate=aggregate_cola,
-            num_proc=num_proc,
-            batch_size=batch_size
-        )
-        result["cola_score_rel"] = result["cola_score"] / ref_cola_score
         # BERTScore
         if "bertscore" in add_metrics_to_use:
             bertscore = BERTSCORE.compute(

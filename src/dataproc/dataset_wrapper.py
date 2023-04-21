@@ -1,9 +1,12 @@
 from typing import Optional
+
+import numpy as np
 import datasets
 
 from runexp import ExperimentConfig
-
 from models import ModelWrapper
+
+import dataproc.data_processing_helpers as data_help
 
 
 class DatasetName:
@@ -12,7 +15,8 @@ class DatasetName:
 
 
 class DatasetWrapper:
-    def __init__(self, name: str, hf_path: Optional[str], hf_config_name: Optional[str], input_field: str, target_field: str):
+    def __init__(self, name: str, hf_path: Optional[str], hf_config_name: Optional[str], input_field: str, target_field: str,
+                 train_split_name: str = "train", validation_split_name: str = "validation", test_split_name: str = "test"):
         self.name = name
 
         self.hf_path = hf_path
@@ -20,6 +24,10 @@ class DatasetWrapper:
 
         self.input_field = input_field
         self.target_field = target_field
+
+        self.train_split_name = train_split_name
+        self.validation_split_name = validation_split_name
+        self.test_split_name = test_split_name
 
         self.dataset = None
         self.preprocessed_dataset = None
@@ -73,3 +81,26 @@ class DatasetWrapper:
                                                    max_input_length=max_input_length,
                                                    max_target_length=max_target_length)
         self.preprocessed_dataset = self.dataset.map(preprocess_func, batched=True)
+
+    def get_random_train_data_subset(self, size: int, seed: int):
+        assert self.preprocessed_dataset
+        return data_help.get_random_sample_from_dataset(dataset=self.preprocessed_dataset[self.train_split_name], size=size, seed=seed)
+
+    def get_random_validation_data_subset(self, size: int, seed: int):
+        assert self.preprocessed_dataset
+        return data_help.get_random_sample_from_dataset(dataset=self.preprocessed_dataset[self.validation_split_name], size=size, seed=seed)
+
+    @property
+    def train_data(self):
+        assert self.preprocessed_dataset
+        return self.preprocessed_dataset[self.train_split_name]
+
+    @property
+    def validation_data(self):
+        assert self.preprocessed_dataset
+        return self.preprocessed_dataset[self.validation_split_name]
+
+    @property
+    def test_data(self):
+        assert self.preprocessed_dataset
+        return self.preprocessed_dataset[self.test_split_name]

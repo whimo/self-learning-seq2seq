@@ -1,12 +1,7 @@
 import argparse
-
 import json
 
-from dataproc import DatasetWrapper
-from models import ModelWrapper
-
-import models.training_manage as tm
-
+import runexp.run_experiment as run_exp
 from runexp import ExperimentConfig
 
 
@@ -18,18 +13,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_experiments(config: ExperimentConfig):
-    model = ModelWrapper.construct_with_config(config)
-    dataset = DatasetWrapper.construct_with_config(config)
-    dataset.preprocess_for_model(model, max_input_length=1026, max_target_length=256)
-
-    training_args = tm.get_training_args()
-
-    model.train_and_eval(train_data=dataset.preprocessed_dataset["train"],
-                         validation_data=dataset.preprocessed_dataset["validation"],
-                         training_arguments=training_args)
-
-
 def main():
     cli_args = parse_args()
 
@@ -37,7 +20,7 @@ def main():
     config_data = json.load(open(config_file, "r"))
 
     config = ExperimentConfig.deserialize(config_data)
-    return run_experiments(config)
+    return run_exp.run_single_experiment(config)
 
 
 if __name__ == "__main__":
