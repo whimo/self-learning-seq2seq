@@ -96,7 +96,7 @@ def compute_metrics(
     if "summac" in add_metrics_to_use:
         from .metrics import calculate_summac_score
         result.update(
-            calculate_summac_score(generated_texts, original_texts, reference_texts, batch_size=batch_size)
+            calculate_summac_score(generated_texts, original_texts, reference_texts)
         )
     if "bartscore" in add_metrics_to_use:
         from .metrics import calculate_bart_score
@@ -158,8 +158,10 @@ def compute_metrics(
                     result[f"bertscore_{key}"] = bertscore[key]
 
         if "sentbert" in add_metrics_to_use:
-            result["sentbert_ref"] = SENTBERT(reference_texts, generated_texts, batch_size=batch_size)
-            sentbert_ref_src = SENTBERT(original_texts, reference_texts, batch_size=batch_size)
+            from .metrics import SentBert
+            sentbert = SentBert()
+            result["sentbert_ref"] = sentbert(reference_texts, generated_texts, batch_size=batch_size)
+            sentbert_ref_src = sentbert(original_texts, reference_texts, batch_size=batch_size)
             result["sentbert_rel"] = result["sentbert_src"] / sentbert_ref_src
 
     for key, value in result.items():
