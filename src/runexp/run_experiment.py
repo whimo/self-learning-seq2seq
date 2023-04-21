@@ -25,6 +25,7 @@ def run_single_experiment(config: ExperimentConfig):
 
     if config.output_dir is None:
         output_dir = "model_output/{}_{}".format(repr(config), datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
+        os.makedirs(output_dir)
         config.output_dir = output_dir
         logging.info("Will save results to directory %s", output_dir)
 
