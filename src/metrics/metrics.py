@@ -90,13 +90,13 @@ def pair_bleu(references, prediction):
     return score
 
 
-def calculate_bart_score(preds, refs=None, texts=None, scorer=None, batch_size=4, aggregate=True):
+def calculate_bart_score(preds, refs=None, texts=None, scorer=None, batch_size=4, aggregate=True, sh_only=True):
     if scorer is None:
         scorer = BARTScorer()
     scores = {}
     if texts is not None:
         scores["BARTScore-sh"] = np.array(scorer.score(texts, preds, batch_size=batch_size))
-    if refs is not None:
+    if refs is not None and not sh_only:
         scores["BARTScore-rh"] = np.array(scorer.score(refs, preds, batch_size=batch_size))
         scores["BARTScore-hr"] = np.array(scorer.score(preds, refs, batch_size=batch_size))
         scores["BARTScore-fa"] = (scores["BARTScore-rh"] + scores["BARTScore-hr"]) / 2

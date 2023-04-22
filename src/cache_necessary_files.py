@@ -1,13 +1,15 @@
 from transformers import AutoModelForSeq2SeqLM
 from transformers import AutoModelForSequenceClassification
+from transformers import AutoModel
 from transformers import AutoTokenizer
 
 from datasets import load_dataset
 from evaluate import load
 
 
-MODELS_SEQ2SEQ = ["facebook/bart-base", "t5-base"]
+MODELS_SEQ2SEQ = ["facebook/bart-base", "t5-base", "facebook/bart-large-cnn"]
 MODELS_CLS = ["Aktsvigun/electra-large-cola"]
+MODELS_GENERIC = ["sentence-transformers/all-mpnet-base-v2"]
 DATASETS = ["xsum", "aeslc", ("trivia_qa", "unfiltered.nocontext")]
 METRICS = ["sacrebleu", "rouge", "bertscore"]
 
@@ -18,6 +20,9 @@ def main():
         AutoTokenizer.from_pretrained(model)
     for model in MODELS_CLS:
         AutoModelForSequenceClassification.from_pretrained(model)
+        AutoTokenizer.from_pretrained(model)
+    for model in MODELS_GENERIC:
+        AutoModel.from_pretrained(model)
         AutoTokenizer.from_pretrained(model)
 
     for dataset in DATASETS:

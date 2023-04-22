@@ -12,6 +12,7 @@ import dataproc.data_processing_helpers as data_help
 class DatasetName:
     XSUM = "xsum"
     AESLC = "aeslc"
+    TRIVIA_QA = "trivia_qa"
 
 
 class DatasetWrapper:
