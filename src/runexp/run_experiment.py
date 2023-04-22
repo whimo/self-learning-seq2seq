@@ -48,7 +48,8 @@ def run_single_experiment(config: ExperimentConfig):
     else:
         validation_subset = dataset.validation_data
 
-    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model)
+    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=False)
+    compute_metrics_fn_final = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=True)
 
     logging.info("Saving config to output dir")
     config.dump_to_file(file_path=os.path.join(config.output_dir, "config.json"))
@@ -57,7 +58,8 @@ def run_single_experiment(config: ExperimentConfig):
     eval_results = model.train_and_eval(train_data=training_subset,
                                         validation_data=validation_subset,
                                         training_arguments=training_args,
-                                        compute_metrics_fn=compute_metrics_fn)
+                                        compute_metrics_fn=compute_metrics_fn,
+                                        compute_metrics_fn_final=compute_metrics_fn_final)
 
     logging.info("Saving results to output dir")
     save_eval_results(eval_results=eval_results, file_path=os.path.join(config.output_dir, "eval_results.json"))

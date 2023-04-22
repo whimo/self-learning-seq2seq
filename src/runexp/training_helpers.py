@@ -33,10 +33,12 @@ def get_training_args(config: ExperimentConfig):
     return args
 
 
-def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper):
+def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, compute_additional_metrics: bool = False):
+    additional_metrics = config.additional_metrics or [] if compute_additional_metrics else []
+
     def compute_metrics(eval_preds):
         return cm.compute_metrics(eval_preds=eval_preds,
                                   tokenizer=model.tokenizer,
                                   batch_size=config.batch_size,
-                                  add_metrics_to_use=config.additional_metrics or [])
+                                  add_metrics_to_use=additional_metrics)
     return compute_metrics

@@ -46,7 +46,7 @@ class ModelWrapper:
         model.load_from_huggingface()
         return model
 
-    def train_and_eval(self, training_arguments, train_data, validation_data, compute_metrics_fn):
+    def train_and_eval(self, training_arguments, train_data, validation_data, compute_metrics_fn, compute_metrics_fn_final):
         assert isinstance(training_arguments, self.hf_training_arguments_class)
 
         data_collator = self.hf_data_collator_class(tokenizer=self.tokenizer, model=self.model,
@@ -66,4 +66,5 @@ class ModelWrapper:
         trainer.train()
 
         logging.info("Starting evaluation")
+        trainer.compute_metrics = compute_metrics_fn_final
         return trainer.evaluate()
