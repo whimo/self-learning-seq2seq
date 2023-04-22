@@ -1,6 +1,5 @@
 from typing import Optional
 
-import numpy as np
 import datasets
 
 from runexp import ExperimentConfig

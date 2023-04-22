@@ -1,3 +1,5 @@
+from typing import Optional
+
 import logging
 import datetime
 import os
@@ -19,7 +21,7 @@ def save_eval_results(eval_results: dict, file_path: str):
         json.dump(eval_results, fd)
 
 
-def run_single_experiment(config: ExperimentConfig):
+def run_single_experiment(config: ExperimentConfig, dataset: Optional[DatasetWrapper] = None):
     logging.basicConfig(format='[%(levelname)s:%(process)d] %(asctime)s - %(message)s', level=logging.INFO)
 
     transformers.set_seed(config.random_seed)
@@ -32,9 +34,13 @@ def run_single_experiment(config: ExperimentConfig):
 
     logging.info("Preparing model")
     model = ModelWrapper.construct_with_config(config)
-    logging.info("Preparing dataset")
-    dataset = DatasetWrapper.construct_with_config(config)
-    dataset.preprocess_for_model(model, max_input_length=config.max_input_length, max_target_length=config.max_target_length)
+
+    if not dataset:
+        logging.info("Preparing dataset")
+        dataset = DatasetWrapper.construct_with_config(config)
+        dataset.preprocess_for_model(model, max_input_length=config.max_input_length, max_target_length=config.max_target_length)
+    else:
+        logging.info("Dataset already provided in function args")
 
     logging.info("Preparing training params")
     training_args = train_help.get_training_args(config)
