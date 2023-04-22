@@ -162,7 +162,7 @@ def calculate_cola_model_predictions(
         probas[i].copy_(sent_probas[start_idx : end_idx].mean())
         
     if aggregate:
-        return probas.mean().item()
+        return probas[~torch.isnan(probas)].mean().item()
     if return_sent_data:
         return probas.cpu().detach().numpy(), sent_probas.cpu().detach().numpy(), sentences
     return probas.cpu().detach().numpy()
