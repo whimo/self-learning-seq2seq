@@ -1,6 +1,8 @@
 from typing import Optional
 
+import pandas as pd
 import datasets
+from datasets import Dataset
 
 from runexp import ExperimentConfig
 from models import ModelWrapper
@@ -8,10 +10,15 @@ from models import ModelWrapper
 import dataproc.data_processing_helpers as data_help
 
 
+PATH_TO_PARABANK = "parabank/parabank.5m.tsv"
+
+
 class DatasetName:
     XSUM = "xsum"
     AESLC = "aeslc"
     TRIVIA_QA = "trivia_qa"
+    PARABANK = "parabank"
+    QUORA = "quora"
 
 
 class DatasetWrapper:
@@ -47,6 +54,16 @@ class DatasetWrapper:
             hf_config_name = None
             input_field = "email_body"
             target_field = "subject_line"
+        elif config.dataset_name == DatasetName.PARABANK:
+            hf_path = None
+            hf_config_name = None
+            input_field = "input"
+            target_field = "output"
+        elif config.dataset_name == DatasetName.QUORA:
+            hf_path = "quora"
+            hf_config_name = None
+            input_field = "input"
+            target_field = "output"
         else:
             raise NotImplementedError
 
@@ -57,7 +74,29 @@ class DatasetWrapper:
             input_field=input_field,
             target_field=target_field,
         )
-        dataset.load_from_huggingface()
+
+        if config.dataset_name == DatasetName.PARABANK:
+            try:
+                data = pd.read_csv(PATH_TO_PARABANK, sep="\t", on_bad_lines="skip")
+            except Exception as exc:
+                raise Exception("Failed to load Parabank: {}".format(exc))
+            data.columns = ["input", "output"]
+            dataset.dataset = Dataset.from_pandas(data)
+            dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
+            dataset.validation_split_name = "test"
+
+        elif config.dataset_name == DatasetName.QUORA:
+            dataset.load_from_huggingface()
+
+            def expand(row):
+                return {"input": row["questions"]["text"][0], "output": row["questions"]["text"][1]}
+            dataset.dataset = dataset.dataset.filter(lambda row: row["is_duplicate"])
+            dataset.dataset = dataset.dataset.map(expand)
+            dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
+            dataset.validation_split_name = "test"
+        else:
+            dataset.load_from_huggingface()
+
         return dataset
 
     def get_preprocess_func(self, tokenizer, max_input_length, max_target_length,
