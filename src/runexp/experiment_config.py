@@ -16,12 +16,14 @@ class DefaultValues:
     GENERATION_NUM_BEAMS = 4
 
     NUM_CHECKPOINTS_TO_SAVE = 2
+    DELETE_CHECKPOINTS = False
     VALIDATION_METRIC = "rougeL"
 
 
 class ExperimentConfig:
     def __init__(self,
                  model_name: str, dataset_name: str,
+                 self_learning_methods: Optional[list] = None,
                  labeled_train_set_size: Optional[int] = None,
                  validation_set_size: Optional[int] = None,
                  random_seed: int = DefaultValues.RANDOM_SEED,
@@ -36,6 +38,7 @@ class ExperimentConfig:
                  warmup_ratio: float = DefaultValues.WARMUP_RATIO,
                  generation_num_beams: int = DefaultValues.GENERATION_NUM_BEAMS,
                  num_checkpoints_to_save: int = DefaultValues.NUM_CHECKPOINTS_TO_SAVE,
+                 delete_checkpoints: bool = DefaultValues.DELETE_CHECKPOINTS,
                  validation_metric: str = DefaultValues.VALIDATION_METRIC,
                  additional_training_args: Optional[dict] = None,
                  additional_metrics: Optional[list] = None,
@@ -43,6 +46,8 @@ class ExperimentConfig:
                  output_dir: Optional[str] = None,):
         self.model_name = model_name
         self.dataset_name = dataset_name
+        self.self_learning_methods = self_learning_methods
+
         self.labeled_train_set_size = labeled_train_set_size
         self.validation_set_size = validation_set_size
 
@@ -60,6 +65,7 @@ class ExperimentConfig:
         self.warmup_ratio = warmup_ratio
         self.generation_num_beams = generation_num_beams
         self.num_checkpoints_to_save = num_checkpoints_to_save
+        self.delete_checkpoints = delete_checkpoints
         self.validation_metric = validation_metric
 
         self.additional_training_args = additional_training_args
@@ -81,6 +87,7 @@ class ExperimentConfig:
         return ExperimentConfig(
             model_name=data.get("model_name"),
             dataset_name=data.get("dataset_name"),
+            self_learning_methods=data.get("self_learning_methods"),
             labeled_train_set_size=data.get("labeled_train_set_size"),
             validation_set_size=data.get("validation_set_size"),
             random_seed=data.get("random_seed", DefaultValues.RANDOM_SEED),
@@ -95,6 +102,7 @@ class ExperimentConfig:
             warmup_ratio=data.get("warmup_ratio", DefaultValues.WARMUP_RATIO),
             generation_num_beams=data.get("generation_num_beams", DefaultValues.GENERATION_NUM_BEAMS),
             num_checkpoints_to_save=data.get("num_checkpoints_to_save", DefaultValues.NUM_CHECKPOINTS_TO_SAVE),
+            delete_checkpoints=data.get("delete_checkpoints", DefaultValues.DELETE_CHECKPOINTS),
             validation_metric=data.get("validation_metric", DefaultValues.VALIDATION_METRIC),
             additional_training_args=data.get("additional_training_args"),
             additional_metrics=data.get("additional_metrics"),
@@ -106,6 +114,7 @@ class ExperimentConfig:
         data = {
             "model_name": self.model_name,
             "dataset_name": self.dataset_name,
+            "self_learning_methods": self.self_learning_methods,
             "labeled_train_set_size": self.labeled_train_set_size,
             "validation_set_size": self.validation_set_size,
             "random_seed": self.random_seed,
@@ -120,6 +129,7 @@ class ExperimentConfig:
             "warmup_ratio": self.warmup_ratio,
             "generation_num_beams": self.generation_num_beams,
             "num_checkpoints_to_save": self.num_checkpoints_to_save,
+            "delete_checkpoints": self.delete_checkpoints,
             "validation_metric": self.validation_metric,
             "additional_training_args": self.additional_training_args,
             "additional_metrics": self.additional_metrics,
@@ -132,3 +142,9 @@ class ExperimentConfig:
         data = self.serialize()
         with open(file_path, "w+") as fd:
             json.dump(data, fd)
+
+    @staticmethod
+    def load_from_file(file_path: str) -> "ExperimentConfig":
+        with open(file_path, "r") as fd:
+            data = json.load(fd)
+        return ExperimentConfig.deserialize(data)
