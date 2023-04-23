@@ -53,7 +53,7 @@ def main():
             key = tuple("{}={}".format(field[:2], getattr(config, field)) for field in key_fields)
             configs_by_key[key].append(config)
 
-    for key, configs in configs_by_key.items():
+    for key, configs in sorted(configs_by_key.items()):
         print("{}:".format(" ".join(key)))
         for config in configs:
             desc = tuple("{}={}".format(field[:2], getattr(config, field)) for field in agg_fields)
