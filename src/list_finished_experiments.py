@@ -56,7 +56,7 @@ def main():
     for key, configs in sorted(configs_by_key.items()):
         print("{}:".format(" ".join(key)))
         for config in configs:
-            desc = tuple("{}={}".format(field[:2], getattr(config, field)) for field in agg_fields)
+            desc = sorted(tuple("{}={}".format(field[:2], getattr(config, field)) for field in agg_fields))
             print("\t{}".format(" ".join(desc)))
 
 
