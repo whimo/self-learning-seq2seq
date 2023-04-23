@@ -11,6 +11,7 @@ import dataproc.data_processing_helpers as data_help
 
 
 PATH_TO_PARABANK = "parabank/parabank.5m.tsv"
+PARABANK_SAMPLE_SIZE = 100000
 
 
 class DatasetName:
@@ -77,7 +78,7 @@ class DatasetWrapper:
 
         if config.dataset_name == DatasetName.PARABANK:
             try:
-                data = pd.read_csv(PATH_TO_PARABANK, sep="\t", on_bad_lines="skip")
+                data = pd.read_csv(PATH_TO_PARABANK, sep="\t", on_bad_lines="skip").dropna().sample(PARABANK_SAMPLE_SIZE)
             except Exception as exc:
                 raise Exception("Failed to load Parabank: {}".format(exc))
             data.columns = ["input", "output"]
@@ -92,7 +93,7 @@ class DatasetWrapper:
                 return {"input": row["questions"]["text"][0], "output": row["questions"]["text"][1]}
             dataset.dataset = dataset.dataset.filter(lambda row: row["is_duplicate"])
             dataset.dataset = dataset.dataset.map(expand)
-            dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
+            dataset.dataset = dataset.dataset["train"].train_test_split(test_size=0.2, shuffle=True)
             dataset.validation_split_name = "test"
         else:
             dataset.load_from_huggingface()
