@@ -62,8 +62,6 @@ class ModelWrapper:
             compute_metrics=compute_metrics_fn
         )
 
-        trainer.che
-
         logging.info("Starting training")
         trainer.train()
 
