@@ -10,7 +10,7 @@ from evaluate import load
 MODELS_SEQ2SEQ = ["facebook/bart-base", "t5-base", "facebook/bart-large-cnn"]
 MODELS_CLS = ["Aktsvigun/electra-large-cola"]
 MODELS_GENERIC = ["sentence-transformers/all-mpnet-base-v2"]
-DATASETS = ["xsum", "aeslc", ("trivia_qa", "unfiltered.nocontext")]
+DATASETS = ["xsum", "aeslc", ("trivia_qa", "unfiltered.nocontext"), "eli5", "quora"]
 METRICS = ["sacrebleu", "rouge", "bertscore"]
 
 

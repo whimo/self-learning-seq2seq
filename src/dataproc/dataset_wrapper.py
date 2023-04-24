@@ -17,6 +17,7 @@ class DatasetName:
     XSUM = "xsum"
     AESLC = "aeslc"
     TRIVIA_QA = "trivia_qa"
+    ELI5 = "eli5"
     PARABANK = "parabank"
     QUORA = "quora"
 
@@ -64,6 +65,11 @@ class DatasetWrapper:
             hf_config_name = None
             input_field = "input"
             target_field = "output"
+        elif config.dataset_name == DatasetName.ELI5:
+            hf_path = "eli5"
+            hf_config_name = None
+            input_field = "input"
+            target_field = "output"
         else:
             raise NotImplementedError
 
@@ -92,6 +98,15 @@ class DatasetWrapper:
                 return {"input": row["questions"]["text"][0], "output": row["questions"]["text"][1]}
             dataset.dataset = dataset.dataset.filter(lambda row: row["is_duplicate"])
             dataset.dataset = dataset.dataset.map(expand)
+            dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
+            dataset.validation_split_name = "test"
+        elif config.dataset_name == DatasetName.ELI5:
+            dataset.load_from_huggingface()
+
+            def prepare(row):
+                return {"input": row["title"], "output": row["answers"]["text"][0]}
+            dataset.dataset = dataset.dataset.filter(lambda row: len(row["answers"].get("text", [])) > 0)
+            dataset.dataset = dataset.dataset.map(prepare)
             dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
             dataset.validation_split_name = "test"
         else:
