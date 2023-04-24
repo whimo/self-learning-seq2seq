@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Union
 
+import pickle
+
 import numpy as np
 from evaluate import load
 from tqdm import tqdm
@@ -59,6 +61,9 @@ def compute_metrics(
 
     if "cola" in add_metrics_to_use:
         from .metrics import calculate_cola_model_predictions
+        
+        with open("texts.pkl", "wb") as fd:
+            pickle.dump(generated_texts, fd)
         result["cola_score"] = calculate_cola_model_predictions(
             generated_texts,
             aggregate=aggregate_cola,
