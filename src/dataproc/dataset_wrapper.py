@@ -9,7 +9,6 @@ from models import ModelWrapper
 
 import dataproc.data_processing_helpers as data_help
 
-
 PATH_TO_PARABANK = "parabank/parabank.5m.tsv"
 PARABANK_SAMPLE_SIZE = 100000
 
@@ -97,6 +96,7 @@ class DatasetWrapper:
 
             def expand(row):
                 return {"input": row["questions"]["text"][0], "output": row["questions"]["text"][1]}
+
             dataset.dataset = dataset.dataset.filter(lambda row: row["is_duplicate"])
             dataset.dataset = dataset.dataset.map(expand)
             dataset.dataset = dataset.dataset["train"].train_test_split(test_size=0.2, shuffle=True)
@@ -106,6 +106,7 @@ class DatasetWrapper:
 
             def prepare(row):
                 return {"input": row["title"], "output": row["answers"]["text"][0]}
+
             dataset.dataset = dataset.dataset.filter(lambda row: len(row["answers"].get("text", [])) > 0)
             dataset.dataset = dataset.dataset.map(prepare)
             dataset.dataset = dataset.dataset["train_eli5"].train_test_split(test_size=0.2, shuffle=True)
@@ -139,11 +140,24 @@ class DatasetWrapper:
 
     def get_random_train_data_subset(self, size: int, seed: int):
         assert self.preprocessed_dataset
-        return data_help.get_random_sample_from_dataset(dataset=self.preprocessed_dataset[self.train_split_name], size=size, seed=seed)
+        return data_help.get_random_sample_from_dataset(dataset=self.train_data, size=size, seed=seed)
 
     def get_random_validation_data_subset(self, size: int, seed: int):
         assert self.preprocessed_dataset
-        return data_help.get_random_sample_from_dataset(dataset=self.preprocessed_dataset[self.validation_split_name], size=size, seed=seed)
+        return data_help.get_random_sample_from_dataset(dataset=self.validation_data, size=size, seed=seed)
+
+    def get_random_labeled_and_unlabeled_train_data(self, labeled_dataset_size: int, seed: int, unlabeled_dataset_size: Optional[int] = None,
+                                                    labels_field: Optional[str] = "labels"):
+        assert self.preprocessed_dataset
+        labeled_data, unlabeled_data = data_help.split_dataset_into_two_parts_randomly(dataset=self.train_data,
+                                                                                       first_part_size=labeled_dataset_size,
+                                                                                       second_part_size=unlabeled_dataset_size,
+                                                                                       seed=seed)
+        if self.target_field in unlabeled_data.features:
+            unlabeled_data = unlabeled_data.remove_columns(self.target_field)
+        if labels_field in unlabeled_data.features:
+            unlabeled_data = unlabeled_data.remove_columns(labels_field)
+        return labeled_data, unlabeled_data
 
     @property
     def train_data(self):
