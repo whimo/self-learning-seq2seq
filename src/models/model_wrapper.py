@@ -87,6 +87,8 @@ class ModelWrapper:
         return trainer.evaluate()
 
     def generate(self, data, config: ExperimentConfig, **kwargs):
+        torch.cuda.empty_cache()
+
         prepared_data = data.remove_columns([column for column in data.features.keys()
                                              if column not in ModelWrapper.INPUT_COLUMNS_WHITELIST])
         dataloader = DataLoader(
