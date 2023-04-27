@@ -10,6 +10,7 @@ class DefaultValues:
     MAX_TARGET_LENGTH = 64
 
     BATCH_SIZE = 16
+    EVAL_BATCH_SIZE = 16
     N_EPOCHS = 1
     LEARNING_RATE = 1e-5
     WEIGHT_DECAY = 0.01
@@ -41,6 +42,7 @@ class ExperimentConfig:
                  max_input_length: int = DefaultValues.MAX_INPUT_LENGTH,
                  max_target_length: int = DefaultValues.MAX_TARGET_LENGTH,
                  batch_size: int = DefaultValues.BATCH_SIZE,
+                 eval_batch_size: int = DefaultValues.EVAL_BATCH_SIZE,
                  n_epochs: int = DefaultValues.N_EPOCHS,
                  learning_rate: float = DefaultValues.LEARNING_RATE,
                  weight_decay: float = DefaultValues.WEIGHT_DECAY,
@@ -68,6 +70,7 @@ class ExperimentConfig:
         self.max_target_length = max_target_length
 
         self.batch_size = batch_size
+        self.eval_batch_size = eval_batch_size
         self.n_epochs = n_epochs
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -109,6 +112,7 @@ class ExperimentConfig:
             max_input_length=data.get("max_input_length", DefaultValues.MAX_INPUT_LENGTH),
             max_target_length=data.get("max_target_length", DefaultValues.MAX_TARGET_LENGTH),
             batch_size=data.get("batch_size", DefaultValues.BATCH_SIZE),
+            eval_batch_size=data.get("eval_batch_size", DefaultValues.EVAL_BATCH_SIZE),
             n_epochs=data.get("n_epochs", DefaultValues.N_EPOCHS),
             learning_rate=data.get("learning_rate", DefaultValues.LEARNING_RATE),
             weight_decay=data.get("weight_decay", DefaultValues.WEIGHT_DECAY),
@@ -136,6 +140,7 @@ class ExperimentConfig:
             "max_input_length": self.max_input_length,
             "max_target_length": self.max_target_length,
             "batch_size": self.batch_size,
+            "eval_batch_size": self.eval_batch_size,
             "n_epochs": self.n_epochs,
             "learning_rate": self.learning_rate,
             "weight_decay": self.weight_decay,

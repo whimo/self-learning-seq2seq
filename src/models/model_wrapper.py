@@ -91,7 +91,7 @@ class ModelWrapper:
                                              if column not in ModelWrapper.INPUT_COLUMNS_WHITELIST])
         dataloader = DataLoader(
             prepared_data,
-            batch_size=config.batch_size,
+            batch_size=config.eval_batch_size,
             collate_fn=self.get_data_collator()
         )
 
