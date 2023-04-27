@@ -108,7 +108,7 @@ class DatasetWrapper:
                 return {"input": row["title"], "output": row["answers"]["text"][0]}
             dataset.dataset = dataset.dataset.filter(lambda row: len(row["answers"].get("text", [])) > 0)
             dataset.dataset = dataset.dataset.map(prepare)
-            dataset.dataset = dataset.dataset.train_test_split(test_size=0.2, shuffle=True)
+            dataset.dataset = dataset.dataset["train_eli5"].train_test_split(test_size=0.2, shuffle=True)
             dataset.validation_split_name = "test"
         else:
             dataset.load_from_huggingface()
