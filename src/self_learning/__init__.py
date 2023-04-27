@@ -1,1 +1,2 @@
 from .pseudo_labeling import Seq2SeqTrainerForPseudoLabeling
+from .pseudo_labeling import ModelWrapperForPseudoLabeling

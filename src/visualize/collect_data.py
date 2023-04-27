@@ -34,5 +34,5 @@ def collect_data_for_experiments(experiments_dir: str, experiment_name: Optional
     return experiments_data
 
 
-def filter_duplicate_experiments(experiments_data: pd.DataFrame, key_columns: List[str], aggregate_columns: List[str]):
+def filter_duplicate_experiments(experiments_data: pandas.DataFrame, key_columns: List[str], aggregate_columns: List[str]):
     return experiments_data[~experiments_data.duplicated(key_columns + aggregate_columns)]

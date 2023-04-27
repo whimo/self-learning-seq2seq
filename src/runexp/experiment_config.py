@@ -1,4 +1,6 @@
 from typing import Optional
+from dataclasses import dataclass
+from dataclasses import asdict
 import json
 
 
@@ -20,10 +22,18 @@ class DefaultValues:
     VALIDATION_METRIC = "rougeL"
 
 
+@dataclass
+class SelfLearningParams:
+    unlabeled_dataset_size: Optional[int] = None
+
+    use_pseudo_labeling: bool = False
+    pseudo_labeling_args: Optional[dict] = None
+
+
 class ExperimentConfig:
     def __init__(self,
                  model_name: str, dataset_name: str,
-                 self_learning_methods: Optional[list] = None,
+                 self_learning_params: Optional[SelfLearningParams] = None,
                  labeled_train_set_size: Optional[int] = None,
                  validation_set_size: Optional[int] = None,
                  random_seed: int = DefaultValues.RANDOM_SEED,
@@ -46,7 +56,7 @@ class ExperimentConfig:
                  output_dir: Optional[str] = None,):
         self.model_name = model_name
         self.dataset_name = dataset_name
-        self.self_learning_methods = self_learning_methods
+        self.self_learning_params = self_learning_params or SelfLearningParams()
 
         self.labeled_train_set_size = labeled_train_set_size
         self.validation_set_size = validation_set_size
@@ -84,10 +94,14 @@ class ExperimentConfig:
 
     @staticmethod
     def deserialize(data: dict) -> "ExperimentConfig":
+        self_learning_params = data.get("self_learning_params")
+        if self_learning_params is not None:
+            self_learning_params = SelfLearningParams(**self_learning_params)
+
         return ExperimentConfig(
             model_name=data.get("model_name"),
             dataset_name=data.get("dataset_name"),
-            self_learning_methods=data.get("self_learning_methods"),
+            self_learning_params=self_learning_params,
             labeled_train_set_size=data.get("labeled_train_set_size"),
             validation_set_size=data.get("validation_set_size"),
             random_seed=data.get("random_seed", DefaultValues.RANDOM_SEED),
@@ -114,7 +128,7 @@ class ExperimentConfig:
         data = {
             "model_name": self.model_name,
             "dataset_name": self.dataset_name,
-            "self_learning_methods": self.self_learning_methods,
+            "self_learning_params": asdict(self.self_learning_params) if self.self_learning_params else None,
             "labeled_train_set_size": self.labeled_train_set_size,
             "validation_set_size": self.validation_set_size,
             "random_seed": self.random_seed,
