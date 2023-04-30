@@ -25,7 +25,8 @@ class DatasetName:
 
 class DatasetWrapper:
     def __init__(self, name: str, hf_path: Optional[str], hf_config_name: Optional[str], input_field: str, target_field: str,
-                 train_split_name: str = "train", validation_split_name: str = "validation", test_split_name: str = "test"):
+                 train_split_name: str = "train", validation_split_name: str = "validation", test_split_name: str = "test",
+                 max_input_length: Optional[int] = None, max_target_length: Optional[int] = None):
         self.name = name
 
         self.hf_path = hf_path
@@ -37,6 +38,9 @@ class DatasetWrapper:
         self.train_split_name = train_split_name
         self.validation_split_name = validation_split_name
         self.test_split_name = test_split_name
+
+        self.max_input_length = max_input_length
+        self.max_target_length = max_target_length
 
         self.dataset = None
         self.preprocessed_dataset = None
@@ -51,31 +55,37 @@ class DatasetWrapper:
             hf_config_name = None
             input_field = "document"
             target_field = "summary"
+            max_target_length = 48
         elif config.dataset_name == DatasetName.AESLC:
             hf_path = "aeslc"
             hf_config_name = None
             input_field = "email_body"
             target_field = "subject_line"
+            max_target_length = 26
         elif config.dataset_name == DatasetName.PARABANK:
             hf_path = None
             hf_config_name = None
             input_field = "input"
             target_field = "output"
+            max_target_length = 64
         elif config.dataset_name == DatasetName.QUORA:
             hf_path = "quora"
             hf_config_name = None
             input_field = "input"
             target_field = "output"
+            max_target_length = 32
         elif config.dataset_name == DatasetName.ELI5:
             hf_path = "eli5"
             hf_config_name = None
             input_field = "input"
             target_field = "output"
+            max_target_length = 840
         elif config.dataset_name == DatasetName.TRIVIA_QA:
             hf_path = "trivia_qa"
             hf_config_name = "unfiltered.nocontext"
             input_field = "input"
             target_field = "output"
+            max_target_length = 16
         else:
             raise NotImplementedError
 
@@ -85,6 +95,8 @@ class DatasetWrapper:
             hf_config_name=hf_config_name,
             input_field=input_field,
             target_field=target_field,
+            max_input_length=config.max_input_length,
+            max_target_length=config.max_target_length or max_target_length,
         )
 
         if config.dataset_name == DatasetName.PARABANK:
@@ -131,30 +143,24 @@ class DatasetWrapper:
 
         return dataset
 
-    def get_preprocess_func(self, tokenizer, max_input_length, max_target_length,
+    def get_preprocess_func(self, tokenizer,
                             labels_field: str = "labels", tokenizer_output_field: str = "input_ids",
                             truncation: bool = True):
         def preprocess(data):
-            model_inputs = tokenizer(data[self.input_field], max_length=max_input_length, truncation=truncation)
+            model_inputs = tokenizer(data[self.input_field], max_length=self.max_input_length, truncation=truncation)
 
             with tokenizer.as_target_tokenizer():
-                labels = tokenizer(data[self.target_field], max_length=max_target_length, truncation=truncation)
+                labels = tokenizer(data[self.target_field], max_length=self.max_target_length, truncation=truncation)
 
             model_inputs[labels_field] = labels[tokenizer_output_field]
             return model_inputs
 
         return preprocess
 
-    def get_train_target_length(self, labels_field: str = "labels", quantile: float = 1.0):
-        assert self.preprocessed_dataset
-        return int(np.ceil(np.quantile([len(label) for label in self.train_data[labels_field]], quantile)))
-
-    def preprocess_for_model(self, model: ModelWrapper, max_input_length, max_target_length):
+    def preprocess_for_model(self, model: ModelWrapper):
         assert self.dataset
 
-        preprocess_func = self.get_preprocess_func(tokenizer=model.tokenizer,
-                                                   max_input_length=max_input_length,
-                                                   max_target_length=max_target_length)
+        preprocess_func = self.get_preprocess_func(tokenizer=model.tokenizer)
         self.preprocessed_dataset = self.dataset.map(preprocess_func, batched=True)
 
     def get_random_train_data_subset(self, size: int, seed: int):

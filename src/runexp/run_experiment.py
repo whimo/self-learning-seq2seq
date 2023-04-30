@@ -44,12 +44,18 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
     if not dataset:
         logging.info("Preparing dataset")
         dataset = DatasetWrapper.construct_with_config(config)
-        dataset.preprocess_for_model(model, max_input_length=config.max_input_length, max_target_length=config.max_target_length)
+        dataset.preprocess_for_model(model)
     else:
         logging.info("Dataset already provided in function args")
 
     logging.info("Preparing training params")
-    training_args = train_help.get_training_args(config=config, dataset=dataset)
+    training_args = train_help.get_training_args(config=config)
+
+    max_target_length = config.max_target_length
+    if max_target_length is None:
+        max_target_length = dataset.max_target_length
+        training_args.generation_max_length = max_target_length
+        logging.info("Max target length is not set in config, using value inferred from dataset: %s", max_target_length)
 
     return model, dataset, training_args
 
