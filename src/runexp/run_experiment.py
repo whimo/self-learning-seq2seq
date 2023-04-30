@@ -49,7 +49,7 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
         logging.info("Dataset already provided in function args")
 
     logging.info("Preparing training params")
-    training_args = train_help.get_training_args(config)
+    training_args = train_help.get_training_args(config=config, dataset=dataset)
 
     return model, dataset, training_args
 

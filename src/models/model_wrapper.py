@@ -1,3 +1,4 @@
+from typing import Optional
 import logging
 
 import datasets
@@ -86,11 +87,12 @@ class ModelWrapper:
         trainer.compute_metrics = compute_metrics_fn_final
         return trainer.evaluate()
 
-    def generate(self, data, config: ExperimentConfig, **kwargs):
+    def generate(self, data, config: ExperimentConfig, max_length: Optional[int] = None, **kwargs):
         torch.cuda.empty_cache()
 
-        prepared_data = data.remove_columns([column for column in data.features.keys()
-                                             if column not in ModelWrapper.INPUT_COLUMNS_WHITELIST])
+        prepared_data = self.remove_excess_columns(data)
+        max_length = max_length or config.max_target_length
+
         dataloader = DataLoader(
             prepared_data,
             batch_size=config.eval_batch_size,
@@ -102,7 +104,7 @@ class ModelWrapper:
         total_sequences = num_return_sequences * len(data)
         sequences = (
                 torch.zeros(
-                    (total_sequences, config.max_target_length), dtype=torch.int64, device=device
+                    (total_sequences, max_length), dtype=torch.int64, device=device
                 )
                 + self.tokenizer.pad_token_id
         )
@@ -115,7 +117,7 @@ class ModelWrapper:
                 batch = {k: v.to(device) for k, v in batch.items()}
                 output = self.model.generate(
                     **batch,
-                    max_length=config.max_target_length,
+                    max_length=max_length,
                     min_length=3,  # To avoid empty outputs. 3 == <BOS> + at least one token + <EOS>
                     output_scores=True,
                     return_dict_in_generate=True,

@@ -1,5 +1,6 @@
 from typing import Optional
 
+import numpy as np
 import pandas as pd
 import datasets
 from datasets import Dataset
@@ -70,6 +71,11 @@ class DatasetWrapper:
             hf_config_name = None
             input_field = "input"
             target_field = "output"
+        elif config.dataset_name == DatasetName.TRIVIA_QA:
+            hf_path = "trivia_qa"
+            hf_config_name = "unfiltered.nocontext"
+            input_field = "input"
+            target_field = "output"
         else:
             raise NotImplementedError
 
@@ -101,6 +107,7 @@ class DatasetWrapper:
             dataset.dataset = dataset.dataset.map(expand)
             dataset.dataset = dataset.dataset["train"].train_test_split(test_size=0.2, shuffle=True)
             dataset.validation_split_name = "test"
+
         elif config.dataset_name == DatasetName.ELI5:
             dataset.load_from_huggingface()
 
@@ -109,8 +116,16 @@ class DatasetWrapper:
 
             dataset.dataset = dataset.dataset.filter(lambda row: len(row["answers"].get("text", [])) > 0)
             dataset.dataset = dataset.dataset.map(prepare)
-            dataset.dataset = dataset.dataset["train_eli5"].train_test_split(test_size=0.2, shuffle=True)
-            dataset.validation_split_name = "test"
+            dataset.train_split_name = "train_eli5"
+            dataset.validation_split_name = "validation_eli5"
+
+        elif config.dataset_name == DatasetName.TRIVIA_QA:
+            dataset.load_from_huggingface()
+
+            def prepare(row):
+                return {"input": row["question"], "output": row["answer"]["value"]}
+
+            dataset.dataset = dataset.dataset.map(prepare)
         else:
             dataset.load_from_huggingface()
 
@@ -129,6 +144,10 @@ class DatasetWrapper:
             return model_inputs
 
         return preprocess
+
+    def get_train_target_length(self, labels_field: str = "labels", quantile: float = 1.0):
+        assert self.preprocessed_dataset
+        return int(np.ceil(np.quantile([len(label) for label in self.train_data[labels_field]], quantile)))
 
     def preprocess_for_model(self, model: ModelWrapper, max_input_length, max_target_length):
         assert self.dataset

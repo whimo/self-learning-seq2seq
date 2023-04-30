@@ -7,7 +7,7 @@ import json
 class DefaultValues:
     RANDOM_SEED = 0
     MAX_INPUT_LENGTH = 1024
-    MAX_TARGET_LENGTH = 64
+    MAX_TARGET_LENGTH = None
 
     BATCH_SIZE = 16
     EVAL_BATCH_SIZE = 16
@@ -40,7 +40,7 @@ class ExperimentConfig:
                  random_seed: int = DefaultValues.RANDOM_SEED,
                  cuda_device: Optional[str] = None,
                  max_input_length: int = DefaultValues.MAX_INPUT_LENGTH,
-                 max_target_length: int = DefaultValues.MAX_TARGET_LENGTH,
+                 max_target_length: Optional[int] = None,
                  batch_size: int = DefaultValues.BATCH_SIZE,
                  eval_batch_size: int = DefaultValues.EVAL_BATCH_SIZE,
                  n_epochs: int = DefaultValues.N_EPOCHS,
@@ -110,7 +110,7 @@ class ExperimentConfig:
             random_seed=data.get("random_seed", DefaultValues.RANDOM_SEED),
             cuda_device=data.get("cuda_device"),
             max_input_length=data.get("max_input_length", DefaultValues.MAX_INPUT_LENGTH),
-            max_target_length=data.get("max_target_length", DefaultValues.MAX_TARGET_LENGTH),
+            max_target_length=data.get("max_target_length"),
             batch_size=data.get("batch_size", DefaultValues.BATCH_SIZE),
             eval_batch_size=data.get("eval_batch_size", DefaultValues.EVAL_BATCH_SIZE),
             n_epochs=data.get("n_epochs", DefaultValues.N_EPOCHS),

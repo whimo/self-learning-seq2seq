@@ -134,7 +134,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
                 logging.info("Generating pseudo labels")
                 if "labels" in unlabeled_data.features:
                     unlabeled_data = unlabeled_data.remove_columns("labels")
-                labels, sequences_scores = self.generate(data=unlabeled_data, config=config)
+                labels, sequences_scores = self.generate(data=unlabeled_data, config=config, max_length=training_arguments.generation_max_length)
 
                 logging.info("Preparing generated labels")
                 labels_dataset = datasets.Dataset.from_dict({"labels": labels.numpy(), "sequences_scores": sequences_scores.numpy()})

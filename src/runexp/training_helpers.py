@@ -1,13 +1,22 @@
+import logging
+
 from transformers import Seq2SeqTrainingArguments
 
 from models import ModelWrapper
+from dataproc import DatasetWrapper
 from runexp import ExperimentConfig
 
 import metrics.compute_metrics as cm
 
 
-def get_training_args(config: ExperimentConfig):
+def get_training_args(config: ExperimentConfig, dataset: DatasetWrapper):
     additional_args = config.additional_training_args or {}
+
+    generation_max_length = config.max_target_length
+    if generation_max_length is None:
+        # infer max target length from dataset
+        generation_max_length = dataset.get_train_target_length(quantile=0.99)
+        logging.info("Max target length is not set in config, using value inferred from dataset: %s", generation_max_length)
 
     args = Seq2SeqTrainingArguments(
         output_dir=config.output_dir,
@@ -27,6 +36,7 @@ def get_training_args(config: ExperimentConfig):
         num_train_epochs=config.n_epochs,
         predict_with_generate=True,
         generation_num_beams=config.generation_num_beams,
+        generation_max_length=generation_max_length,
         fp16=config.do_use_gpu,
         **additional_args,
     )
