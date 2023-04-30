@@ -91,7 +91,7 @@ class ModelWrapper:
         torch.cuda.empty_cache()
 
         prepared_data = self.remove_excess_columns(data)
-        max_length = max_length or config.max_target_length
+        max_length = (max_length or config.max_target_length) + 2
         dataloader = DataLoader(
             prepared_data,
             batch_size=config.eval_batch_size,
