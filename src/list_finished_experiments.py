@@ -21,7 +21,6 @@ def parse_args():
     parser.add_argument("--key-fields", nargs="+", default=["experiment_name",
                                                             "model_name",
                                                             "dataset_name",
-                                                            "self_learning_methods",
                                                             "labeled_train_set_size"])
     parser.add_argument("--agg-fields", nargs="+", default=["random_seed"])
 

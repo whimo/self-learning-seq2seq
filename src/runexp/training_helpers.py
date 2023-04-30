@@ -1,3 +1,8 @@
+import logging
+import os
+import glob
+import shutil
+
 from transformers import Seq2SeqTrainingArguments
 
 from models import ModelWrapper
@@ -43,3 +48,11 @@ def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, comput
                                   batch_size=config.batch_size,
                                   add_metrics_to_use=additional_metrics)
     return compute_metrics
+
+
+def delete_checkpoints(config: ExperimentConfig, checkpoints_prefix: str = "checkpoint"):
+    assert config.output_dir
+
+    for directory in glob.glob(os.path.join(config.output_dir, checkpoints_prefix) + "*"):
+        logging.info("Deleting directory %s", directory)
+        shutil.rmtree(directory)

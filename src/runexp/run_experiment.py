@@ -93,6 +93,10 @@ def run_single_experiment(config: ExperimentConfig, dataset: Optional[DatasetWra
     logging.info("Saving results to output dir")
     save_eval_results(eval_results=eval_results, file_path=os.path.join(config.output_dir, "eval_results.json"))
 
+    if config.delete_checkpoints:
+        logging.info("Cleaning up checkpoints")
+        train_help.delete_checkpoints(config=config)
+
     if config.do_use_gpu:
         torch.cuda.empty_cache()
 
