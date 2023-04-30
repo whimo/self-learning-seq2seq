@@ -94,7 +94,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
 
         validation_data = self.remove_excess_columns(validation_data)
 
-        data_collator = self.get_data_collator()
+        data_collator = self.get_data_collator(max_length=config.max_target_length)
         train_data = train_data.map(lambda row: {"weight": 1.0})
         training_arguments.remove_unused_columns = False
         trainer = None
