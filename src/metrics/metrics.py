@@ -25,9 +25,10 @@ from metrics.infolm import InfoLM
 
 def decode(eval_preds, tokenizer):
     predictions, labels, *inputs = eval_preds
-    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
-    # Replace -100 in the labels as we can't decode them.
+    # Replace -100 as we can't decode them.
+    predictions = np.where(predictions != -100, predictions, tokenizer.pad_token_id)
     labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    decoded_preds = tokenizer.batch_decode(predictions, skip_special_tokens=True)
     decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
 
     decoded_preds = [pred.strip() for pred in decoded_preds]

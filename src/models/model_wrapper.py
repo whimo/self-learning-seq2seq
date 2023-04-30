@@ -55,10 +55,9 @@ class ModelWrapper:
         model.load_from_huggingface()
         return model
 
-    def get_data_collator(self, max_length: Optional[int] = None):
+    def get_data_collator(self):
         return self.hf_data_collator_class(tokenizer=self.tokenizer, model=self.model,
-                                           padding=True, label_pad_token_id=self.tokenizer.pad_token_id,
-                                           max_length=max_length)
+                                           padding=True, label_pad_token_id=self.tokenizer.pad_token_id)
 
     @classmethod
     def remove_excess_columns(cls, data: datasets.Dataset):
@@ -69,7 +68,7 @@ class ModelWrapper:
                        config: ExperimentConfig, **kwargs):
         assert isinstance(training_arguments, self.hf_training_arguments_class)
 
-        data_collator = self.get_data_collator(max_length=config.max_target_length)
+        data_collator = self.get_data_collator()
 
         trainer = self.hf_trainer_class(
             self.model,
@@ -93,11 +92,10 @@ class ModelWrapper:
 
         prepared_data = self.remove_excess_columns(data)
         max_length = max_length or config.max_target_length
-
         dataloader = DataLoader(
             prepared_data,
             batch_size=config.eval_batch_size,
-            collate_fn=self.get_data_collator(max_length=config.max_target_length)
+            collate_fn=self.get_data_collator()
         )
 
         device = self.model.device
