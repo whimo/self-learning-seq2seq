@@ -45,6 +45,12 @@ def get_pseudo_label_weighter(pseudo_labeling_args: Optional[dict]) -> Optional[
             return weight_coef * epoch
         return weighter_inner
 
+    if weighter_type == "const":
+        def weighter_inner(epoch, row):
+            weight = pseudo_labeling_args.get("weight", 1)
+            return weight
+        return weighter_inner
+
     raise Exception("Unknown weighter type: {}".format(weighter_type))
 
 
@@ -137,7 +143,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
                 labels, sequences_scores = self.generate(data=unlabeled_data, config=config, max_length=training_arguments.generation_max_length)
 
                 logging.info("Preparing generated labels")
-                labels_dataset = datasets.Dataset.from_dict({"labels": labels.numpy(), "sequences_scores": sequences_scores.numpy()})
+                labels_dataset = datasets.Dataset.from_dict({"labels": labels, "sequences_scores": sequences_scores})
                 pseudo_labeled_data = datasets.concatenate_datasets([unlabeled_data, labels_dataset], axis=1)
 
                 logging.info("Weighting pseudo labels")

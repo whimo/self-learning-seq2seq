@@ -10,7 +10,7 @@ import visualize.collect_data as collect_data
 
 def draw_single_plot(data: pandas.DataFrame, x_column: str, target_column: str, hue_column: Optional[str],
                      title: Optional[str] = None, x_label: Optional[str] = None, y_label: Optional[str] = None):
-    plot = seaborn.lineplot(data, x=x_column, y=target_column, hue=hue_column)
+    plot = seaborn.lineplot(data=data, x=x_column, y=target_column, hue=hue_column)
     if title:
         plot.set(title=title)
     if x_label:
@@ -25,9 +25,9 @@ def draw_multiple_plots(data: Dict[str, pandas.DataFrame], x_column: str, target
     merged_df = pandas.concat([
         df.assign(label=label)
         for label, df in data.items()
-    ])
+    ]).reset_index()
 
-    plot = seaborn.lineplot(merged_df, x=x_column, y=target_column, hue="label")
+    plot = seaborn.lineplot(data=merged_df, x=x_column, y=target_column, hue="label")
     if title:
         plot.set(title=title)
     if x_label:
