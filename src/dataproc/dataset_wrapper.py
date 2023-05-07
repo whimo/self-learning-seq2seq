@@ -167,28 +167,16 @@ class DatasetWrapper:
         self.preprocessed_dataset = self.dataset.map(preprocess_func, batched=True)
 
     def get_random_train_data_subset(self, size: int, seed: int, preprocessed: bool = True):
-        if preprocessed:
-            assert self.preprocessed_dataset
-            dataset = self.preprocessed_dataset
-        else:
-            dataset = self.dataset
+        dataset = self.preprocessed_train_data if preprocessed else self.train_data
         return data_help.get_random_sample_from_dataset(dataset=dataset, size=size, seed=seed)
 
     def get_random_validation_data_subset(self, size: int, seed: int, preprocessed: bool = True):
-        if preprocessed:
-            assert self.preprocessed_dataset
-            dataset = self.preprocessed_dataset
-        else:
-            dataset = self.dataset
+        dataset = self.preprocessed_validation_data if preprocessed else self.validation_data
         return data_help.get_random_sample_from_dataset(dataset=dataset, size=size, seed=seed)
 
     def get_random_labeled_and_unlabeled_train_data(self, labeled_dataset_size: int, seed: int, unlabeled_dataset_size: Optional[int] = None,
                                                     labels_field: Optional[str] = "labels", preprocessed: bool = True):
-        if preprocessed:
-            assert self.preprocessed_dataset
-            dataset = self.preprocessed_dataset
-        else:
-            dataset = self.dataset
+        dataset = self.preprocessed_train_data if preprocessed else self.train_data
         labeled_data, unlabeled_data = data_help.split_dataset_into_two_parts_randomly(dataset=dataset,
                                                                                        first_part_size=labeled_dataset_size,
                                                                                        second_part_size=unlabeled_dataset_size,
