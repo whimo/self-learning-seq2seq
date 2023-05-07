@@ -1,2 +1,3 @@
+from .augmentation import AugmentedDatasetWrapper
 from .pseudo_labeling import Seq2SeqTrainerForPseudoLabeling
 from .pseudo_labeling import ModelWrapperForPseudoLabeling
