@@ -101,9 +101,9 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
         pseudo_labeled_data = None
 
         if pseudo_label_weighter is None:
-            pseudo_label_weighter = get_pseudo_label_weighter(config.self_learning_params.pseudo_labeling_args)
+            pseudo_label_weighter = get_pseudo_label_weighter(config.self_learning_params.pseudo_labeling_params)
         if pseudo_label_filter is None:
-            pseudo_label_filter = get_pseudo_label_filter(config.self_learning_params.pseudo_labeling_args)
+            pseudo_label_filter = get_pseudo_label_filter(config.self_learning_params.pseudo_labeling_params)
 
         logging.info("Starting training with pseudo labeling")
         n_epochs = training_arguments.num_train_epochs

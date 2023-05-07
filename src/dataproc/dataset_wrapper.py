@@ -1,6 +1,6 @@
 from typing import Optional
 
-import numpy as np
+import copy
 import pandas as pd
 import datasets
 from datasets import Dataset
@@ -26,6 +26,7 @@ class DatasetName:
 class DatasetWrapper:
     def __init__(self, name: str, hf_path: Optional[str], hf_config_name: Optional[str], input_field: str, target_field: str,
                  train_split_name: str = "train", validation_split_name: str = "validation", test_split_name: str = "test",
+                 unlabeled_train_split_name: str = "unlabeled",
                  max_input_length: Optional[int] = None, max_target_length: Optional[int] = None):
         self.name = name
 
@@ -38,6 +39,7 @@ class DatasetWrapper:
         self.train_split_name = train_split_name
         self.validation_split_name = validation_split_name
         self.test_split_name = test_split_name
+        self.unlabeled_train_split_name = unlabeled_train_split_name
 
         self.max_input_length = max_input_length
         self.max_target_length = max_target_length
@@ -48,8 +50,8 @@ class DatasetWrapper:
     def load_from_huggingface(self):
         self.dataset = datasets.load_dataset(path=self.hf_path, name=self.hf_config_name)
 
-    @staticmethod
-    def construct_with_config(config: ExperimentConfig) -> "DatasetWrapper":
+    @classmethod
+    def construct_with_config(cls, config: ExperimentConfig):
         if config.dataset_name == DatasetName.XSUM:
             hf_path = "xsum"
             hf_config_name = None
@@ -89,7 +91,7 @@ class DatasetWrapper:
         else:
             raise NotImplementedError
 
-        dataset = DatasetWrapper(
+        dataset = cls(
             name=config.dataset_name,
             hf_path=hf_path,
             hf_config_name=hf_config_name,
@@ -149,10 +151,11 @@ class DatasetWrapper:
         def preprocess(data):
             model_inputs = tokenizer(data[self.input_field], max_length=self.max_input_length, truncation=truncation)
 
-            with tokenizer.as_target_tokenizer():
-                labels = tokenizer(data[self.target_field], max_length=self.max_target_length, truncation=truncation)
+            if self.target_field in data:
+                with tokenizer.as_target_tokenizer():
+                    labels = tokenizer(data[self.target_field], max_length=self.max_target_length, truncation=truncation)
+                model_inputs[labels_field] = labels[tokenizer_output_field]
 
-            model_inputs[labels_field] = labels[tokenizer_output_field]
             return model_inputs
 
         return preprocess
@@ -184,17 +187,105 @@ class DatasetWrapper:
             unlabeled_data = unlabeled_data.remove_columns(labels_field)
         return labeled_data, unlabeled_data
 
+    def split_train_data_into_labeled_and_unlabeled(self, labeled_dataset_size: int, seed: int, unlabeled_dataset_size: Optional[int] = None,
+                                                    labels_field: Optional[str] = "labels"):
+        labeled_data_indices, unlabeled_data_indices = data_help.get_random_split_indices(
+            length=len(self.dataset[self.train_split_name]),
+            first_part_size=labeled_dataset_size,
+            second_part_size=unlabeled_dataset_size,
+            seed=seed
+        )
+
+        unlabeled_data = self.dataset[self.train_split_name].select(unlabeled_data_indices)
+        labeled_data = self.dataset[self.train_split_name].select(labeled_data_indices)
+
+        if self.target_field in unlabeled_data.features:
+            unlabeled_data = unlabeled_data.remove_columns(self.target_field)
+        if labels_field in unlabeled_data.features:
+            unlabeled_data = unlabeled_data.remove_columns(labels_field)
+        self.dataset[self.train_split_name] = labeled_data
+        self.dataset[self.unlabeled_train_split_name] = unlabeled_data
+
+        if self.preprocessed_dataset:
+            preprocessed_unlabeled_data = self.train_data.select(unlabeled_data_indices)
+            preprocessed_labeled_data = self.train_data.select(labeled_data_indices)
+
+            if self.target_field in preprocessed_unlabeled_data.features:
+                preprocessed_unlabeled_data = preprocessed_unlabeled_data.remove_columns(self.target_field)
+            if labels_field in preprocessed_unlabeled_data.features:
+                preprocessed_unlabeled_data = preprocessed_unlabeled_data.remove_columns(labels_field)
+
+            self.preprocessed_dataset[self.train_split_name] = preprocessed_labeled_data
+            self.preprocessed_dataset[self.unlabeled_train_split_name] = preprocessed_unlabeled_data
+
+    def clone_without_data(self):
+        return DatasetWrapper(
+            name=self.name,
+            hf_path=None,
+            hf_config_name=None,
+            input_field=self.input_field,
+            target_field=self.target_field,
+            train_split_name=self.train_split_name,
+            validation_split_name=self.validation_split_name,
+            test_split_name=self.test_split_name,
+            max_input_length=self.max_input_length,
+            max_target_length=self.max_target_length
+        )
+
+    def clone_with_random_train_subset(self, size: int, seed: int) -> "DatasetWrapper":
+        new_dataset_wrapper = self.clone_without_data()
+
+        train_indices = data_help.get_random_sample_indices(length=len(self.dataset[self.train_split_name]), size=size, seed=seed)
+
+        train_subset = self.train_data.select(train_indices)
+        new_dataset = copy.deepcopy(self.dataset)
+        new_dataset[self.train_split_name] = train_subset
+        new_dataset_wrapper.dataset = new_dataset
+
+        if self.preprocessed_dataset:
+            preprocesseed_train_subset = self.train_data.select(train_indices)
+            preprocessed_new_dataset = copy.deepcopy(self.preprocessed_dataset)
+            preprocessed_new_dataset[self.train_split_name] = preprocesseed_train_subset
+            new_dataset_wrapper.preprocessed_dataset = preprocessed_new_dataset
+
+        return new_dataset_wrapper
+
     @property
     def train_data(self):
-        assert self.preprocessed_dataset
-        return self.preprocessed_dataset[self.train_split_name]
+        return self.dataset[self.train_split_name]
+
+    @property
+    def unlabeled_train_data(self):
+        return self.dataset[self.unlabeled_train_split_name]
 
     @property
     def validation_data(self):
-        assert self.preprocessed_dataset
-        return self.preprocessed_dataset[self.validation_split_name]
+        return self.dataset[self.validation_split_name]
 
     @property
     def test_data(self):
-        assert self.preprocessed_dataset
+        return self.dataset[self.test_split_name]
+
+    @property
+    def preprocessed_train_data(self):
+        if not self.preprocessed_dataset:
+            return None
+        return self.preprocessed_dataset[self.train_split_name]
+
+    @property
+    def preprocessed_unlabeled_train_data(self):
+        if not self.preprocessed_dataset:
+            return None
+        return self.preprocessed_dataset[self.unlabeled_train_split_name]
+
+    @property
+    def preprocessed_validation_data(self):
+        if not self.preprocessed_dataset:
+            return None
+        return self.preprocessed_dataset[self.validation_split_name]
+
+    @property
+    def preprocessed_test_data(self):
+        if not self.preprocessed_dataset:
+            return None
         return self.preprocessed_dataset[self.test_split_name]

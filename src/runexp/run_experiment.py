@@ -1,4 +1,5 @@
 from typing import Optional
+from typing import Union
 
 import logging
 import datetime
@@ -7,10 +8,12 @@ import json
 
 import torch
 import transformers
+import numpy as np
 
 from dataproc import DatasetWrapper
 from models import ModelWrapper
 
+from self_learning import AugmentedDatasetWrapper
 from self_learning import ModelWrapperForPseudoLabeling
 
 import runexp.training_helpers as train_help
@@ -27,6 +30,7 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
     logging.basicConfig(format='[%(levelname)s:%(process)d] %(asctime)s - %(message)s', level=logging.INFO)
 
     transformers.set_seed(config.random_seed)
+    np.random.seed(config.random_seed)
 
     if config.output_dir is None:
         output_dir = "model_output/{}_{}".format(repr(config), datetime.datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
@@ -43,7 +47,26 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
 
     if not dataset:
         logging.info("Preparing dataset")
-        dataset = DatasetWrapper.construct_with_config(config)
+        if config.self_learning_params.augmentation_type:
+            dataset_class = AugmentedDatasetWrapper
+        else:
+            dataset_class = DatasetWrapper
+        dataset: Union[DatasetWrapper, AugmentedDatasetWrapper] = dataset_class.construct_with_config(config)
+
+        if config.labeled_train_set_size:
+            dataset.split_train_data_into_labeled_and_unlabeled(
+                labeled_dataset_size=config.labeled_train_set_size,
+                unlabeled_dataset_size=config.self_learning_params.unlabeled_dataset_size,
+                seed=config.random_seed)
+
+        if config.self_learning_params.augmentation_type:
+            logging.info("Augmenting dataset")
+            dataset.augment(augmentation_type=config.self_learning_params.augmentation_type,
+                            augmenter_kwargs=config.self_learning_params.augmenter_kwargs,
+                            augmentation_scale=config.self_learning_params.augmentation_scale,
+                            random_seed=config.random_seed,
+                            device=config.device)
+
         dataset.preprocess_for_model(model)
     else:
         logging.info("Dataset already provided in function args")
@@ -61,15 +84,6 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
 def run_single_experiment(config: ExperimentConfig, dataset: Optional[DatasetWrapper] = None):
     model, dataset, training_args = prepare_experiment_context(config=config, dataset=dataset)
 
-    if config.labeled_train_set_size:
-        training_set, unlabeled_set = dataset.get_random_labeled_and_unlabeled_train_data(
-            labeled_dataset_size=config.labeled_train_set_size,
-            unlabeled_dataset_size=config.self_learning_params.unlabeled_dataset_size,
-            seed=config.random_seed)
-    else:
-        training_set = dataset.train_data
-        unlabeled_set = None
-
     if config.validation_set_size:
         validation_set = dataset.get_random_validation_data_subset(size=config.validation_set_size, seed=config.random_seed)
     else:
@@ -82,8 +96,8 @@ def run_single_experiment(config: ExperimentConfig, dataset: Optional[DatasetWra
     config.dump_to_file(file_path=os.path.join(config.output_dir, "config.json"))
 
     logging.info("Starting train_and_eval")
-    eval_results = model.train_and_eval(train_data=training_set,
-                                        unlabeled_data=unlabeled_set,
+    eval_results = model.train_and_eval(train_data=dataset.preprocessed_train_data,
+                                        unlabeled_data=dataset.preprocessed_unlabeled_train_data,
                                         validation_data=validation_set,
                                         training_arguments=training_args,
                                         compute_metrics_fn=compute_metrics_fn,
