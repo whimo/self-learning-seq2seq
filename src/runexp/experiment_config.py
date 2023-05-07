@@ -28,7 +28,7 @@ class SelfLearningParams:
     unlabeled_dataset_size: Optional[int] = None
 
     use_pseudo_labeling: bool = False
-    pseudo_labeling_params: Optional[dict] = None
+    pseudo_labeling_args: Optional[dict] = None
 
     augmentation_type: Optional[str] = None
     augmentation_scale: float = 1.0

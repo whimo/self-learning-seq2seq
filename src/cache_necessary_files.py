@@ -6,7 +6,9 @@ from transformers import AutoTokenizer
 from datasets import load_dataset
 from evaluate import load
 
-from nlpaug.util.file.download import DownloadUtil
+import nlpaug.augmenter.word as naw
+
+import nltk
 
 
 MODELS_SEQ2SEQ = ["facebook/bart-base", "t5-base", "facebook/bart-large-cnn"]
@@ -37,9 +39,10 @@ def main():
     for metric in METRICS:
         load(metric)
 
-    DownloadUtil.download_word2vec(dest_dir='.')
-    DownloadUtil.download_glove(model_name='glove.6B', dest_dir='.')
-    DownloadUtil.download_fasttext(model_name='wiki-news-300d-1M', dest_dir='.')
+    naw.ContextualWordEmbsAug(model_type="roberta", model_path="roberta-base")
+    naw.SynonymAug()
+
+    nltk.download('averaged_perceptron_tagger')
 
 
 if __name__ == "__main__":
