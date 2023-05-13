@@ -25,6 +25,7 @@ def get_augmenter(augmentation_type: str, augmenter_kwargs: Optional[dict], devi
         augmenter_kwargs["model_path"] = augmenter_kwargs.get("model_path", "roberta-base")
         augmenter_kwargs["model_type"] = augmenter_kwargs.get("model_type", "roberta")
         augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
+        augmenter_kwargs["device"] = device
         return naw.ContextualWordEmbsAug(**augmenter_kwargs)
 
     if augmentation_type == "emb":
