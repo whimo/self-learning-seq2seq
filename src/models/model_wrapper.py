@@ -34,8 +34,12 @@ class ModelWrapper:
         self.hf_training_arguments_class = hf_training_arguments_class
         self.hf_trainer_class = hf_trainer_class
 
-    def load_from_huggingface(self):
-        self.model = self.hf_model_class.from_pretrained(self.hf_checkpoint_path)
+    def load_from_huggingface(self, local_checkpoint_path: Optional[str] = None):
+        if local_checkpoint_path:
+            logging.info("Loading model from local checkpoint %s", local_checkpoint_path)
+            self.model = self.hf_model_class.from_pretrained(local_checkpoint_path)
+        else:
+            self.model = self.hf_model_class.from_pretrained(self.hf_checkpoint_path)
         self.tokenizer = self.hf_tokenizer_class.from_pretrained(self.hf_checkpoint_path)
 
     @classmethod
@@ -52,7 +56,7 @@ class ModelWrapper:
         model = cls(
             hf_checkpoint_path=hf_checkpoint_path,
         )
-        model.load_from_huggingface()
+        model.load_from_huggingface(local_checkpoint_path=config.model_local_checkpoint_path)
         return model
 
     def get_data_collator(self):

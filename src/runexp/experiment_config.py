@@ -60,6 +60,7 @@ class ExperimentConfig:
                  validation_metric: str = DefaultValues.VALIDATION_METRIC,
                  additional_training_args: Optional[dict] = None,
                  additional_metrics: Optional[list] = None,
+                 model_local_checkpoint_path: Optional[str] = None,
                  experiment_name: Optional[str] = None,
                  output_dir: Optional[str] = None,):
         self.model_name = model_name
@@ -90,6 +91,8 @@ class ExperimentConfig:
 
         self.additional_training_args = additional_training_args
         self.additional_metrics = additional_metrics
+
+        self.model_local_checkpoint_path = model_local_checkpoint_path
 
         self.experiment_name = experiment_name
         self.output_dir = output_dir
@@ -132,6 +135,7 @@ class ExperimentConfig:
             validation_metric=data.get("validation_metric", DefaultValues.VALIDATION_METRIC),
             additional_training_args=data.get("additional_training_args"),
             additional_metrics=data.get("additional_metrics"),
+            model_local_checkpoint_path=data.get("model_local_checkpoint_path"),
             experiment_name=data.get("experiment_name"),
             output_dir=data.get("output_dir"),
         )
@@ -161,6 +165,7 @@ class ExperimentConfig:
             "validation_metric": self.validation_metric,
             "additional_training_args": self.additional_training_args,
             "additional_metrics": self.additional_metrics,
+            "model_local_checkpoint_path": self.model_local_checkpoint_path,
             "experiment_name": self.experiment_name,
             "output_dir": self.output_dir,
         }
