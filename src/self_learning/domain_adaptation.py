@@ -18,8 +18,12 @@ from self_learning import DataCollatorForDenoisingTasks
 from self_learning import SentenceTokenize
 
 
+GENERATION_LENGTH_LIMIT = 1021
+
+
 def get_max_text_length(dataset, quantile: float = 0.99, input_field: str = "input_ids"):
-    return np.quantile([len(text) for text in dataset[input_field]], quantile)
+    return min(np.quantile([len(text) for text in dataset[input_field]], quantile),
+               GENERATION_LENGTH_LIMIT)
 
 
 def prepare_domain_adaptation_context(config: ExperimentConfig):
@@ -36,7 +40,7 @@ def prepare_domain_adaptation_context(config: ExperimentConfig):
     if dataset.unlabeled_train_split_name in dataset.dataset:
         train_data = datasets.concatenate_datasets([train_data, dataset.unlabeled_train_data], axis=0)
 
-    validation_data = dataset.get_random_validation_data_subset(size=config.validation_set_size, seed=config.random_seed)
+    validation_data = dataset.get_random_validation_data_subset(size=config.validation_set_size, seed=config.random_seed, preprocessed=False)
 
     train_data = train_data.rename_column(dataset.input_field, "text")
     validation_data = validation_data.rename_column(dataset.input_field, "text")
@@ -79,7 +83,7 @@ def run_domain_adaptation_training(config: ExperimentConfig):
     compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=False)
 
     trainer = Seq2SeqTrainer(
-        model_init=model.model,
+        model=model.model,
         args=training_args,
         data_collator=data_collator,
         train_dataset=tokenized_train_data,
