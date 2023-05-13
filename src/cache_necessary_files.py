@@ -39,7 +39,7 @@ def main():
     for metric in METRICS:
         load(metric)
 
-    naw.ContextualWordEmbsAug(model_type="roberta", model_path="roberta-base")
+    naw.ContextualWordEmbsAug(model_type="roberta", model_path="distilroberta-base")
     naw.SynonymAug()
 
     nltk.download('averaged_perceptron_tagger')

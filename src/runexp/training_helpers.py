@@ -45,7 +45,7 @@ def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, comput
     def compute_metrics(eval_preds):
         return cm.compute_metrics(eval_preds=eval_preds,
                                   tokenizer=model.tokenizer,
-                                  batch_size=config.batch_size,
+                                  batch_size=config.eval_batch_size,
                                   add_metrics_to_use=additional_metrics)
     return compute_metrics
 
