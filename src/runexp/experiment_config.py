@@ -16,6 +16,7 @@ class DefaultValues:
     WEIGHT_DECAY = 0.01
     MAX_GRAD_NORM = 1
     WARMUP_RATIO = 0
+    GRADIENT_ACCUMULATION_STEPS = 1
     GENERATION_NUM_BEAMS = 4
 
     NUM_CHECKPOINTS_TO_SAVE = 2
@@ -52,6 +53,7 @@ class ExperimentConfig:
                  weight_decay: float = DefaultValues.WEIGHT_DECAY,
                  max_grad_norm: float = DefaultValues.MAX_GRAD_NORM,
                  warmup_ratio: float = DefaultValues.WARMUP_RATIO,
+                 gradient_accumulation_steps: int = DefaultValues.GRADIENT_ACCUMULATION_STEPS,
                  generation_num_beams: int = DefaultValues.GENERATION_NUM_BEAMS,
                  num_checkpoints_to_save: int = DefaultValues.NUM_CHECKPOINTS_TO_SAVE,
                  delete_checkpoints: bool = DefaultValues.DELETE_CHECKPOINTS,
@@ -80,6 +82,7 @@ class ExperimentConfig:
         self.weight_decay = weight_decay
         self.max_grad_norm = max_grad_norm
         self.warmup_ratio = warmup_ratio
+        self.gradient_accumulation_steps = gradient_accumulation_steps
         self.generation_num_beams = generation_num_beams
         self.num_checkpoints_to_save = num_checkpoints_to_save
         self.delete_checkpoints = delete_checkpoints
@@ -122,6 +125,7 @@ class ExperimentConfig:
             weight_decay=data.get("weight_decay", DefaultValues.WEIGHT_DECAY),
             max_grad_norm=data.get("max_grad_norm", DefaultValues.MAX_GRAD_NORM),
             warmup_ratio=data.get("warmup_ratio", DefaultValues.WARMUP_RATIO),
+            gradient_accumulation_steps=data.get("gradient_accumulation_steps", DefaultValues.GRADIENT_ACCUMULATION_STEPS),
             generation_num_beams=data.get("generation_num_beams", DefaultValues.GENERATION_NUM_BEAMS),
             num_checkpoints_to_save=data.get("num_checkpoints_to_save", DefaultValues.NUM_CHECKPOINTS_TO_SAVE),
             delete_checkpoints=data.get("delete_checkpoints", DefaultValues.DELETE_CHECKPOINTS),
@@ -150,6 +154,7 @@ class ExperimentConfig:
             "weight_decay": self.weight_decay,
             "max_grad_norm": self.max_grad_norm,
             "warmup_ratio": self.warmup_ratio,
+            "gradient_accumulation_steps": self.gradient_accumulation_steps,
             "generation_num_beams": self.generation_num_beams,
             "num_checkpoints_to_save": self.num_checkpoints_to_save,
             "delete_checkpoints": self.delete_checkpoints,

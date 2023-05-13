@@ -22,6 +22,7 @@ def get_training_args(config: ExperimentConfig):
         learning_rate=config.learning_rate,
         per_device_train_batch_size=config.batch_size,
         per_device_eval_batch_size=config.eval_batch_size,
+        gradient_accumulation_steps=config.gradient_accumulation_steps,
         include_inputs_for_metrics=True,
         load_best_model_at_end=True,
         metric_for_best_model=config.validation_metric,
