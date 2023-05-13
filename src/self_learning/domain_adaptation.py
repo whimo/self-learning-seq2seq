@@ -13,6 +13,7 @@ from models import ModelWrapper
 from dataproc import DatasetWrapper
 
 import runexp.training_helpers as train_help
+import dataproc.data_processing_helpers as data_help
 
 from self_learning import DataCollatorForDenoisingTasks
 from self_learning import SentenceTokenize
@@ -37,6 +38,9 @@ def prepare_domain_adaptation_context(config: ExperimentConfig):
         train_data = datasets.concatenate_datasets([train_data, dataset.unlabeled_train_data], axis=0)
 
     validation_data = dataset.get_random_validation_data_subset(size=config.validation_set_size, seed=config.random_seed)
+    if config.self_learning_params.unlabeled_dataset_size:
+        train_data = data_help.get_random_sample_from_dataset(train_data, size=config.self_learning_params.unlabeled_dataset_size,
+                                                              seed=config.random_seed)
 
     train_data = train_data.rename_column(dataset.input_field, "text")
     validation_data = validation_data.rename_column(dataset.input_field, "text")
