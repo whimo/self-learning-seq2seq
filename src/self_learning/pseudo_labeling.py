@@ -102,6 +102,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
 
         data_collator = self.get_data_collator()
         train_data = train_data.map(lambda row: {"weight": 1.0})
+        supervised_epochs = config.self_learning_params.pseudo_labeling_args.get("supervised_epochs", 0)
         training_arguments.remove_unused_columns = False
         trainer = None
         pseudo_labeled_data = None
@@ -113,30 +114,16 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
 
         logging.info("Starting training with pseudo labeling")
         n_epochs = training_arguments.num_train_epochs
-        for epoch in range(1, n_epochs + 1):
-            logging.info("Epoch %s of %s", epoch, n_epochs)
-
-            if epoch == 1:
-                train_data_with_pseudo_labeled = train_data
+        for epoch in range(n_epochs + 1):
+            # 0th epoch is supervised training without pseudo labeling
+            if epoch == 0:
+                if supervised_epochs == 0:
+                    continue
+                logging.info("Running supervised training for %s epochs", supervised_epochs)
             else:
-                train_data_with_pseudo_labeled = datasets.concatenate_datasets([train_data, pseudo_labeled_data], axis=0)
+                logging.info("Pseudo-labeling epoch %s of %s", epoch, n_epochs)
 
-            train_data_with_pseudo_labeled = self.remove_excess_columns(train_data_with_pseudo_labeled)
-
-            logging.info("Training using existing data")
-            training_arguments.num_train_epochs = 1
-            trainer = self.hf_trainer_class(
-                model=self.model,
-                args=training_arguments,
-                train_dataset=train_data_with_pseudo_labeled,
-                eval_dataset=validation_data,
-                data_collator=data_collator,
-                compute_metrics=compute_metrics_fn
-            )
-
-            trainer.train()
-
-            if epoch < n_epochs:
+            if epoch > 0:
                 logging.info("Generating pseudo labels")
                 if "labels" in unlabeled_data.features:
                     unlabeled_data = unlabeled_data.remove_columns("labels")
@@ -153,6 +140,26 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
                 if pseudo_label_filter:
                     logging.info("Filtering pseudo labels")
                     pseudo_labeled_data = pseudo_label_filter(pseudo_labeled_data)
+
+            if epoch == 0:
+                train_data_with_pseudo_labeled = train_data
+            else:
+                train_data_with_pseudo_labeled = datasets.concatenate_datasets([train_data, pseudo_labeled_data], axis=0)
+
+            train_data_with_pseudo_labeled = self.remove_excess_columns(train_data_with_pseudo_labeled)
+
+            logging.info("Training using existing data")
+            training_arguments.num_train_epochs = 1 if epoch > 0 else supervised_epochs
+            trainer = self.hf_trainer_class(
+                model=self.model,
+                args=training_arguments,
+                train_dataset=train_data_with_pseudo_labeled,
+                eval_dataset=validation_data,
+                data_collator=data_collator,
+                compute_metrics=compute_metrics_fn
+            )
+
+            trainer.train()
 
         logging.info("Starting evaluation")
         trainer.compute_metrics = compute_metrics_fn_final
