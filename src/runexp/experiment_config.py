@@ -15,6 +15,7 @@ class DefaultValues:
     LEARNING_RATE = 1e-5
     WEIGHT_DECAY = 0.01
     MAX_GRAD_NORM = 1
+    LABEL_SMOOTHING_FACTOR = 0.0
     WARMUP_RATIO = 0
     GRADIENT_ACCUMULATION_STEPS = 1
     GENERATION_NUM_BEAMS = 4
@@ -52,6 +53,7 @@ class ExperimentConfig:
                  learning_rate: float = DefaultValues.LEARNING_RATE,
                  weight_decay: float = DefaultValues.WEIGHT_DECAY,
                  max_grad_norm: float = DefaultValues.MAX_GRAD_NORM,
+                 label_smoothing_factor: float = DefaultValues.LABEL_SMOOTHING_FACTOR,
                  warmup_ratio: float = DefaultValues.WARMUP_RATIO,
                  gradient_accumulation_steps: int = DefaultValues.GRADIENT_ACCUMULATION_STEPS,
                  generation_num_beams: int = DefaultValues.GENERATION_NUM_BEAMS,
@@ -82,6 +84,7 @@ class ExperimentConfig:
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         self.max_grad_norm = max_grad_norm
+        self.label_smoothing_factor = label_smoothing_factor
         self.warmup_ratio = warmup_ratio
         self.gradient_accumulation_steps = gradient_accumulation_steps
         self.generation_num_beams = generation_num_beams
@@ -127,6 +130,7 @@ class ExperimentConfig:
             learning_rate=data.get("learning_rate", DefaultValues.LEARNING_RATE),
             weight_decay=data.get("weight_decay", DefaultValues.WEIGHT_DECAY),
             max_grad_norm=data.get("max_grad_norm", DefaultValues.MAX_GRAD_NORM),
+            label_smoothing_factor=data.get("label_smoothing_factor", DefaultValues.LABEL_SMOOTHING_FACTOR),
             warmup_ratio=data.get("warmup_ratio", DefaultValues.WARMUP_RATIO),
             gradient_accumulation_steps=data.get("gradient_accumulation_steps", DefaultValues.GRADIENT_ACCUMULATION_STEPS),
             generation_num_beams=data.get("generation_num_beams", DefaultValues.GENERATION_NUM_BEAMS),
@@ -157,6 +161,7 @@ class ExperimentConfig:
             "learning_rate": self.learning_rate,
             "weight_decay": self.weight_decay,
             "max_grad_norm": self.max_grad_norm,
+            "label_smoothing_factor": self.label_smoothing_factor,
             "warmup_ratio": self.warmup_ratio,
             "gradient_accumulation_steps": self.gradient_accumulation_steps,
             "generation_num_beams": self.generation_num_beams,

@@ -28,6 +28,7 @@ def get_training_args(config: ExperimentConfig):
         metric_for_best_model=config.validation_metric,
         weight_decay=config.weight_decay,
         max_grad_norm=config.max_grad_norm,
+        label_smoothing_factor=config.label_smoothing_factor,
         warmup_ratio=config.warmup_ratio,
         save_total_limit=config.num_checkpoints_to_save,
         num_train_epochs=config.n_epochs,
