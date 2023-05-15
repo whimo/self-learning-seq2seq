@@ -19,17 +19,17 @@ BERTSCORE = load("bertscore")
 
 
 def compute_metrics(
-    eval_preds,
-    tokenizer,
-    batch_size: int,
-    add_metrics_to_use: Union[Tuple[str, ...], List[str]] = (
-        "bartscore",
-        "bertscore",
-        "sentbert",
-        "summac",
-        "cola",
-    ),
-    aggregate_cola: bool = False,
+        eval_preds,
+        tokenizer,
+        batch_size: int,
+        add_metrics_to_use: Union[Tuple[str, ...], List[str]] = (
+                "bartscore",
+                "bertscore",
+                "sentbert",
+                "summac",
+                "cola",
+        ),
+        aggregate_cola: bool = False,
 ) -> Dict[str, float]:
     generated_texts, reference_texts, *original_texts = decode(eval_preds, tokenizer)
     if len(original_texts) > 0:
@@ -62,7 +62,7 @@ def compute_metrics(
 
     if "cola" in add_metrics_to_use:
         from .metrics import calculate_cola_model_predictions
-        
+
         with open("texts.pkl", "wb") as fd:
             pickle.dump(generated_texts, fd)
         result["cola_score"] = calculate_cola_model_predictions(
@@ -185,7 +185,7 @@ def compute_metrics_for_qa(eval_preds, tokenizer, answers_by_question: dict):
         raise Exception("Original texts have not been passed to metrics computation. Use include_inputs_for_metrics=True in training args")
 
     result = {
-        "exact_match": match_correct_answers(predictions=generated_texts, questions=original_texts,
-                                             answers_by_question=answers_by_question)
+        "accuracy": match_correct_answers(predictions=generated_texts, questions=original_texts,
+                                          answers_by_question=answers_by_question)
     }
     return result

@@ -46,7 +46,7 @@ def get_training_args(config: ExperimentConfig):
 def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, dataset: DatasetWrapper, compute_additional_metrics: bool = False):
     additional_metrics = config.additional_metrics or [] if compute_additional_metrics else []
 
-    if dataset.name == DatasetName.TRIVIA_QA:
+    if dataset.name in DatasetName.QA:
         def compute_metrics(eval_preds):
             return cm.compute_metrics_for_qa(eval_preds=eval_preds,
                                              tokenizer=model.tokenizer,

@@ -20,9 +20,14 @@ class DatasetName:
     XSUM = "xsum"
     AESLC = "aeslc"
     TRIVIA_QA = "trivia_qa"
-    ELI5 = "eli5"
+    WEB_QUESTIONS = "web_questions"
     PARABANK = "parabank"
     QUORA = "quora"
+
+    QA = {
+        TRIVIA_QA,
+        WEB_QUESTIONS,
+    }
 
 
 class DatasetWrapper:
@@ -80,12 +85,12 @@ class DatasetWrapper:
             input_field = "input"
             target_field = "output"
             max_target_length = 32
-        elif config.dataset_name == DatasetName.ELI5:
-            hf_path = "eli5"
+        elif config.dataset_name == DatasetName.WEB_QUESTIONS:
+            hf_path = "web_questions"
             hf_config_name = None
             input_field = "input"
             target_field = "output"
-            max_target_length = 840
+            max_target_length = 16
         elif config.dataset_name == DatasetName.TRIVIA_QA:
             hf_path = "trivia_qa"
             hf_config_name = "unfiltered.nocontext"
@@ -126,16 +131,21 @@ class DatasetWrapper:
             dataset.dataset = dataset.dataset["train"].train_test_split(test_size=0.2, shuffle=True)
             dataset.validation_split_name = "test"
 
-        elif config.dataset_name == DatasetName.ELI5:
+        elif config.dataset_name == DatasetName.WEB_QUESTIONS:
             dataset.load_from_huggingface()
+            dataset.validation_split_name = "test"
+
+            tokenizer = RegexpTokenizer(r'\w+')
+
+            dataset.qa_validation_answers_by_question = {}
+            for row in dataset.validation_data:
+                question_tok = tuple(tokenizer.tokenize(row["question"].lower()))
+                dataset.qa_validation_answers_by_question[question_tok] = row["answers"]
 
             def prepare(row):
-                return {"input": row["title"], "output": row["answers"]["text"][0]}
+                return {"input": row["question"], "output": row["answers"][0]}
 
-            dataset.dataset = dataset.dataset.filter(lambda row: len(row["answers"].get("text", [])) > 0)
             dataset.dataset = dataset.dataset.map(prepare)
-            dataset.train_split_name = "train_eli5"
-            dataset.validation_split_name = "validation_eli5"
 
         elif config.dataset_name == DatasetName.TRIVIA_QA:
             dataset.load_from_huggingface()
