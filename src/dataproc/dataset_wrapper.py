@@ -47,6 +47,8 @@ class DatasetWrapper:
         self.dataset = None
         self.preprocessed_dataset = None
 
+        self.qa_validation_answers_by_question = None
+
     def load_from_huggingface(self):
         self.dataset = datasets.load_dataset(path=self.hf_path, name=self.hf_config_name)
 
@@ -135,6 +137,10 @@ class DatasetWrapper:
 
         elif config.dataset_name == DatasetName.TRIVIA_QA:
             dataset.load_from_huggingface()
+
+            dataset.qa_validation_answers_by_question = {}
+            for row in dataset.validation_data:
+                dataset.qa_validation_answers_by_question[row["question"]] = row["answer"]["aliases"] + [row["answer"]["value"]]
 
             def prepare(row):
                 return {"input": row["question"], "output": row["answer"]["value"]}

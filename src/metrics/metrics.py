@@ -8,6 +8,7 @@ import string
 
 import nltk
 from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.tokenize import RegexpTokenizer
 from nltk.translate.bleu_score import corpus_bleu
 from nltk.stem import porter
 from nltk import ngrams
@@ -33,14 +34,14 @@ def decode(eval_preds, tokenizer):
 
     decoded_preds = [pred.strip() for pred in decoded_preds]
     decoded_labels = [label.strip() for label in decoded_labels]
-    
+
     if len(inputs) > 0:
         input_ids = inputs[0]
         input_ids = np.where(input_ids != -100, input_ids, tokenizer.pad_token_id)
         decoded_texts = tokenizer.batch_decode(input_ids, skip_special_tokens=True)
         decoded_texts = [text.strip() for text in decoded_texts]
         return decoded_preds, decoded_labels, decoded_texts
-        
+
     return decoded_preds, decoded_labels
 
 
@@ -65,6 +66,7 @@ def smoothing_function(p_n, references, hypothesis, hyp_len):
         else:
             smoothed_p_n.append(p_i)
     return smoothed_p_n
+
 
 def pair_bleu(references, prediction):
     """
@@ -106,8 +108,9 @@ def calculate_bart_score(preds, refs=None, texts=None, scorer=None, batch_size=4
         scores = {key: np.mean(value) for key, value in scores.items()}
     return scores
 
+
 def calculate_summac_score(
-    predictions: List[str], texts: List[str], labels: List[str] = None, aggregate: bool = True
+        predictions: List[str], texts: List[str], labels: List[str] = None, aggregate: bool = True
 ) -> Dict[str, np.ndarray]:
     scorer = SummaCZS(granularity="sentence", model_name="vitc")
     preds_score = scorer.score(texts, predictions)["scores"]
@@ -122,30 +125,31 @@ def calculate_summac_score(
         return {"SummaC-tp": preds_score, "SummaC-rel": rel_score}
     return {"SummaC-tp": preds_score}
 
+
 def calculate_cola_model_predictions(
-    texts,
-    checkpoint="Aktsvigun/electra-large-cola",
-    batch_size=64,
-    device="cuda",
-    return_sent_data: bool = False,
-    aggregate: bool = True
+        texts,
+        checkpoint="Aktsvigun/electra-large-cola",
+        batch_size=64,
+        device="cuda",
+        return_sent_data: bool = False,
+        aggregate: bool = True
 ):
     model = AutoModelForSequenceClassification.from_pretrained("Aktsvigun/electra-large-cola").to(device)
     tokenizer = AutoTokenizer.from_pretrained(checkpoint)
-    
+
     text_sentences = [nltk.sent_tokenize(text) for text in texts]
     len_maps = np.cumsum([len(x) for x in text_sentences])
     sentences = [sent for text in text_sentences for sent in text]
-    
+
     def tokenize_fn(instance):
         return tokenizer(instance["text"], truncation=True)
-    
+
     tokenized_data = Dataset.from_dict({"text": sentences}).map(tokenize_fn, remove_columns=["text"], batched=True)
     data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
     dataloader = DataLoader(
         tokenized_data, batch_size=batch_size, shuffle=False, collate_fn=data_collator
     )
-    
+
     sent_probas = torch.empty(len(sentences), dtype=torch.float32, device=device)
     probas = torch.empty(len(texts), dtype=torch.float32, device=device)
     start = 0
@@ -157,41 +161,42 @@ def calculate_cola_model_predictions(
             sent_probas[start:end].copy_(batch_probas)
             start = end
             end += batch_size
-    
+
     for i, end_idx in enumerate(len_maps):
         start_idx = len_maps[i - 1] if i != 0 else 0
-        probas[i].copy_(sent_probas[start_idx : end_idx].mean())
-        
+        probas[i].copy_(sent_probas[start_idx: end_idx].mean())
+
     if aggregate:
         return probas[~torch.isnan(probas)].mean().item()
     if return_sent_data:
         return probas.cpu().detach().numpy(), sent_probas.cpu().detach().numpy(), sentences
     return probas.cpu().detach().numpy()
 
+
 def calculate_infolm_score(predictions, references, batch_size=4):
-    
     assert len(predictions) == len(references), "Lengths must coincide!"
     infolm_fr = InfoLM(measure_to_use='fisher_rao')
     infolm_ab = InfoLM(measure_to_use='ab', alpha=1., beta=1.)
-    
+
     infolm_fr_scores, infolm_ab_scores = [], []
     idf_ref, idf_hyps = infolm_fr.prepare_idfs(references, predictions)
-    
+
     num_batches = ceil(len(predictions) / batch_size)
     for i in tqdm(range(num_batches)):
-        batch_preds = predictions[i * batch_size : (i + 1) * batch_size]
-        batch_refs = references[i * batch_size : (i + 1) * batch_size]
-    
+        batch_preds = predictions[i * batch_size: (i + 1) * batch_size]
+        batch_refs = references[i * batch_size: (i + 1) * batch_size]
+
         infolm_fr_scores += infolm_fr.evaluate_batch(
             batch_preds, batch_refs, idf_ref=idf_ref, idf_hyps=idf_hyps
         )["fisher_rao"]
         infolm_ab_scores = infolm_ab.evaluate_batch(
             batch_preds, batch_refs, idf_ref=idf_ref, idf_hyps=idf_hyps
         )["ab"]
-        
+
     return infolm_fr_scores, infolm_ab_scores
 
-def calculate_abstractiveness_scores(predictions, texts, references = None, aggregate: bool = True):
+
+def calculate_abstractiveness_scores(predictions, texts, references=None, aggregate: bool = True):
     stemmer = porter.PorterStemmer()
     tokenized_preds = [tokenize.tokenize(x, stemmer) for x in predictions]
     tokenized_texts = [tokenize.tokenize(x, stemmer) for x in texts]
@@ -199,14 +204,14 @@ def calculate_abstractiveness_scores(predictions, texts, references = None, aggr
         tokenized_refs = [tokenize.tokenize(x, stemmer) for x in references]
     else:
         tokenized_refs = tokenized_preds
-    
+
     result = {}
     for use_modified in [False, True]:
         for n in range(1, 5):
             pred_ngram_overlaps = []
             label_ngram_overlaps = []
             for pred, label, text in zip(
-                tokenized_preds, tokenized_refs, tokenized_texts
+                    tokenized_preds, tokenized_refs, tokenized_texts
             ):
                 pred_pair_ngram_overlap = calculate_ngram_overlap(
                     pred, text, n, use_modified
@@ -222,23 +227,23 @@ def calculate_abstractiveness_scores(predictions, texts, references = None, aggr
                 if use_modified
                 else f"novel_ngrams_{n}"
             )
-            
+
             pred_ngram_overlaps = np.array(pred_ngram_overlaps)
             cond_abs = ~np.isnan(pred_ngram_overlaps)
             result[key + "_abs"] = pred_ngram_overlaps[cond_abs]
-            
+
             if references is not None:
                 label_ngram_overlaps = np.array(label_ngram_overlaps)
                 cond_rel = cond_abs & ~np.isnan(label_ngram_overlaps)
                 result[key + "_rel"] = pred_ngram_overlaps[cond_rel] / label_ngram_overlaps[cond_rel]
-                
+
     if aggregate:
         for key, value in result.items():
             result[key] = np.mean(value)
-    
+
     return result
-            
-            
+
+
 def calculate_ngram_overlap(summary, text, n=1, use_modified=True):
     summary_ngrams = list(ngrams(summary, n))
     text_ngrams = list(ngrams(text, n))
@@ -259,14 +264,29 @@ def calculate_ngram_overlap(summary, text, n=1, use_modified=True):
     return np.nan
 
 
+def exact_match_multiple(predictions, references):
+    scores = []
+    tokenizer = RegexpTokenizer(r'\w+')
+
+    for pred, refs in zip(predictions, references):
+        pred_tok = tokenizer.tokenize(pred.lower())
+        match = False
+        for ref in refs:
+            if tokenizer.tokenize(ref.lower()) == pred_tok:
+                match = True
+                break
+        scores.append(1.0 if match else 0.0)
+    return np.mean(scores)
+
+
 class SentBert:
     def __init__(self, checkpoint: str = "sentence-transformers/all-mpnet-base-v2", device: str = "cuda"):
         self.tokenizer = AutoTokenizer.from_pretrained(checkpoint)
         self.model = AutoModel.from_pretrained(checkpoint).to(device)
         self.device = device
-        
+
     def __call__(
-        self, source_texts: List[str], ref_texts: List[str], batch_size: int = 32
+            self, source_texts: List[str], ref_texts: List[str], batch_size: int = 32
     ) -> np.ndarray:
         assert len(source_texts) == len(ref_texts)
         # Make batch_size an even number
@@ -277,7 +297,7 @@ class SentBert:
         scores = np.empty(n_texts, dtype=np.float32)
         start = 0
         end = 0
-        
+
         while end < n_texts:
             end += half_batch_size
             batch_idx = slice(start, end)
@@ -295,14 +315,14 @@ class SentBert:
             n_source_embs = len(sent_embs) // 2
             scores[batch_idx] = (sent_embs[:n_source_embs] * sent_embs[n_source_embs:]).sum(-1).cpu().detach().numpy()
             start = end
-            
+
         return scores
-                 
-    @staticmethod      
+
+    @staticmethod
     def mean_pooling(model_output, attention_mask):
         """
         Mean Pooling - Take attention mask into account for correct averaging
         """
-        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+        token_embeddings = model_output[0]  # First element of model_output contains all token embeddings
         input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
         return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)

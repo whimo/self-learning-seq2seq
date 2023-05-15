@@ -89,8 +89,8 @@ def run_single_experiment(config: ExperimentConfig, dataset: Optional[DatasetWra
     else:
         validation_set = dataset.validation_data
 
-    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=False)
-    compute_metrics_fn_final = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=True)
+    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, dataset=dataset, compute_additional_metrics=False)
+    compute_metrics_fn_final = train_help.get_compute_metrics_fn(config=config, model=model, dataset=dataset, compute_additional_metrics=True)
 
     logging.info("Saving config to output dir")
     config.dump_to_file(file_path=os.path.join(config.output_dir, "config.json"))

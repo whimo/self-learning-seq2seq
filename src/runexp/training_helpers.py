@@ -6,6 +6,8 @@ import shutil
 from transformers import Seq2SeqTrainingArguments
 
 from models import ModelWrapper
+from dataproc import DatasetWrapper
+from dataproc import DatasetName
 from runexp import ExperimentConfig
 
 import metrics.compute_metrics as cm
@@ -41,8 +43,15 @@ def get_training_args(config: ExperimentConfig):
     return args
 
 
-def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, compute_additional_metrics: bool = False):
+def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, dataset: DatasetWrapper, compute_additional_metrics: bool = False):
     additional_metrics = config.additional_metrics or [] if compute_additional_metrics else []
+
+    if dataset.name == DatasetName.TRIVIA_QA:
+        def compute_metrics(eval_preds):
+            return cm.compute_metrics_for_qa(eval_preds=eval_preds,
+                                             tokenizer=model.tokenizer,
+                                             answers_by_question=dataset.qa_validation_answers_by_question)
+        return compute_metrics
 
     def compute_metrics(eval_preds):
         return cm.compute_metrics(eval_preds=eval_preds,

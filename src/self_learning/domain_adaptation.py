@@ -84,7 +84,7 @@ def run_domain_adaptation_training(config: ExperimentConfig):
 
     data_collator = DataCollatorForDenoisingTasks(tokenizer=model.tokenizer)
     callbacks = [EarlyStoppingCallback(early_stopping_patience=3)]
-    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, compute_additional_metrics=False)
+    compute_metrics_fn = train_help.get_compute_metrics_fn(config=config, model=model, dataset=dataset, compute_additional_metrics=False)
 
     trainer = Seq2SeqTrainer(
         model=model.model,

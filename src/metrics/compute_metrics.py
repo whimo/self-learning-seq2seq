@@ -10,6 +10,7 @@ from .metrics import (
     calculate_abstractiveness_scores,
     decode,
     pair_bleu,
+    exact_match_multiple,
 )
 
 SACREBLEU = load("sacrebleu")
@@ -173,4 +174,19 @@ def compute_metrics(
         if not isinstance(value, (int, float)):
             result[key] = float(np.mean(value))
 
+    return result
+
+
+def compute_metrics_for_qa(eval_preds, tokenizer, answers_by_question: dict):
+    generated_texts, reference_texts, *original_texts = decode(eval_preds, tokenizer)
+    if len(original_texts) > 0:
+        original_texts = original_texts[0]
+    else:
+        raise Exception("Original texts have not been passed to metrics computation. Use include_inputs_for_metrics=True in training args")
+
+    references_with_aliases = [answers_by_question[question] for question in original_texts]
+
+    result = {
+        "exact_match": exact_match_multiple(predictions=generated_texts, references=references_with_aliases)
+    }
     return result
