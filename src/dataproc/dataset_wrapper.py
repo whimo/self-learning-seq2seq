@@ -5,6 +5,8 @@ import pandas as pd
 import datasets
 from datasets import Dataset
 
+from nltk.tokenize import RegexpTokenizer
+
 from runexp import ExperimentConfig
 from models import ModelWrapper
 
@@ -137,10 +139,12 @@ class DatasetWrapper:
 
         elif config.dataset_name == DatasetName.TRIVIA_QA:
             dataset.load_from_huggingface()
+            tokenizer = RegexpTokenizer(r'\w+')
 
             dataset.qa_validation_answers_by_question = {}
             for row in dataset.validation_data:
-                dataset.qa_validation_answers_by_question[row["question"]] = row["answer"]["aliases"] + [row["answer"]["value"]]
+                question_tok = tuple(tokenizer.tokenize(row["question"].lower()))
+                dataset.qa_validation_answers_by_question[question_tok] = row["answer"]["aliases"] + [row["answer"]["value"]]
 
             def prepare(row):
                 return {"input": row["question"], "output": row["answer"]["value"]}

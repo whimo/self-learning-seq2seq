@@ -264,18 +264,21 @@ def calculate_ngram_overlap(summary, text, n=1, use_modified=True):
     return np.nan
 
 
-def exact_match_multiple(predictions, references):
+def match_correct_answers(predictions, questions, answers_by_question):
     scores = []
     tokenizer = RegexpTokenizer(r'\w+')
 
-    for pred, refs in zip(predictions, references):
-        pred_tok = tokenizer.tokenize(pred.lower())
+    for prediction, question in zip(predictions, questions):
+        pred_tok = tokenizer.tokenize(prediction.lower())
+        question_tok = tuple(tokenizer.tokenize(question.lower()))
+
         match = False
-        for ref in refs:
-            if tokenizer.tokenize(ref.lower()) == pred_tok:
+        for alias in answers_by_question[question_tok]:
+            if tokenizer.tokenize(alias.lower()) == pred_tok:
                 match = True
                 break
         scores.append(1.0 if match else 0.0)
+
     return np.mean(scores)
 
 
