@@ -32,6 +32,9 @@ def get_augmenter(augmentation_type: str, augmenter_kwargs: Optional[dict], devi
         augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
         return naw.WordEmbsAug(**augmenter_kwargs)
 
+    if augmentation_type == "backtr":
+        return naw.BackTranslationAug(**augmenter_kwargs)
+
     raise Exception("Unkonwn augmentation type: {}".format(augmentation_type))
 
 
