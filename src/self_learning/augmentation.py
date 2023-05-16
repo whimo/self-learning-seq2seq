@@ -1,7 +1,11 @@
 from typing import Optional
+import logging
 import math
 
+import numpy as np
 import datasets
+
+from nltk import word_tokenize
 import nlpaug.augmenter.char as nac
 import nlpaug.augmenter.word as naw
 import nlpaug.augmenter.sentence as nas
@@ -15,30 +19,6 @@ from dataproc import DatasetWrapper
 import dataproc.data_processing_helpers as data_help
 
 
-def get_augmenter(augmentation_type: str, augmenter_kwargs: Optional[dict], device: Optional[str] = None):
-    augmenter_kwargs = augmenter_kwargs or {}
-
-    if augmentation_type == "synonym":
-        return naw.SynonymAug(**augmenter_kwargs)
-
-    if augmentation_type == "mlm":
-        augmenter_kwargs["model_path"] = augmenter_kwargs.get("model_path", "roberta-base")
-        augmenter_kwargs["model_type"] = augmenter_kwargs.get("model_type", "roberta")
-        augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
-        augmenter_kwargs["device"] = device
-        return naw.ContextualWordEmbsAug(**augmenter_kwargs)
-
-    if augmentation_type == "emb":
-        augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
-        return naw.WordEmbsAug(**augmenter_kwargs)
-
-    if augmentation_type == "backtr":
-        augmenter_kwargs["device"] = device
-        return naw.BackTranslationAug(**augmenter_kwargs)
-
-    raise Exception("Unkonwn augmentation type: {}".format(augmentation_type))
-
-
 class AugmentedDatasetWrapper(DatasetWrapper):
     def __init__(self, **kwargs):
         super(AugmentedDatasetWrapper, self).__init__(**kwargs)
@@ -48,7 +28,7 @@ class AugmentedDatasetWrapper(DatasetWrapper):
 
     def augment(self, augmentation_type: str, augmenter_kwargs: Optional[dict], random_seed: int,
                 augmentation_scale: float = 1.0, device: Optional[str] = None):
-        augmenter = get_augmenter(augmentation_type=augmentation_type, augmenter_kwargs=augmenter_kwargs, device=device)
+        augmenter = self.get_augmenter(augmentation_type=augmentation_type, augmenter_kwargs=augmenter_kwargs, device=device)
 
         def augment_fn(data):
             data[self.input_field] = augmenter.augment(data[self.input_field])
@@ -72,6 +52,41 @@ class AugmentedDatasetWrapper(DatasetWrapper):
         preprocess_func = self.get_preprocess_func(tokenizer=model.tokenizer)
         self.preprocessed_dataset = self.dataset.map(preprocess_func, batched=True)
         self.preprocessed_aug_dataset = self.aug_dataset.map(preprocess_func, batched=True)
+
+    def get_max_input_length_for_augmenter(self, quantile: float = 0.95):
+        lengths = []
+        for text in self.dataset[self.train_split_name][self.input_field]:
+            tokens = word_tokenize(text)
+            lengths.append(len(tokens))
+
+        return int(np.quantile(lengths, quantile))
+
+    def get_augmenter(self, augmentation_type: str, augmenter_kwargs: Optional[dict], device: Optional[str] = None):
+        augmenter_kwargs = augmenter_kwargs or {}
+
+        if augmentation_type == "synonym":
+            return naw.SynonymAug(**augmenter_kwargs)
+
+        if augmentation_type == "mlm":
+            augmenter_kwargs["model_path"] = augmenter_kwargs.get("model_path", "roberta-base")
+            augmenter_kwargs["model_type"] = augmenter_kwargs.get("model_type", "roberta")
+            augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
+            augmenter_kwargs["device"] = device
+            return naw.ContextualWordEmbsAug(**augmenter_kwargs)
+
+        if augmentation_type == "emb":
+            augmenter_kwargs["action"] = augmenter_kwargs.get("action", "substitute")
+            return naw.WordEmbsAug(**augmenter_kwargs)
+
+        if augmentation_type == "backtr":
+            augmenter_kwargs["device"] = device
+            if "max_length" not in augmenter_kwargs:
+                max_length = min(self.get_max_input_length_for_augmenter(), self.max_input_length)
+                logging.info("Max length not passed to augmenter, using value inferred from the dataset: %s", max_length)
+                augmenter_kwargs["max_length"] = max_length
+            return naw.BackTranslationAug(**augmenter_kwargs)
+
+        raise Exception("Unkonwn augmentation type: {}".format(augmentation_type))
 
     @property
     def train_data(self):
