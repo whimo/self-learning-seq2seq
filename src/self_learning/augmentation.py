@@ -33,6 +33,7 @@ def get_augmenter(augmentation_type: str, augmenter_kwargs: Optional[dict], devi
         return naw.WordEmbsAug(**augmenter_kwargs)
 
     if augmentation_type == "backtr":
+        augmenter_kwargs["device"] = device
         return naw.BackTranslationAug(**augmenter_kwargs)
 
     raise Exception("Unkonwn augmentation type: {}".format(augmentation_type))
