@@ -61,6 +61,16 @@ def get_compute_metrics_fn(config: ExperimentConfig, model: ModelWrapper, datase
     return compute_metrics
 
 
+def is_better_result(old_results: dict, new_results: dict, metric_name: str, higher_is_better: bool = True):
+    old_metric_value = old_results.get(metric_name) or old_results.get("eval_{}".format(metric_name))
+    new_metric_value = new_results.get(metric_name) or new_results.get("eval_{}".format(metric_name))
+
+    assert old_metric_value is not None and new_metric_value is not None
+    if higher_is_better:
+        return new_metric_value > old_metric_value
+    return new_metric_value < old_metric_value
+
+
 def delete_checkpoints(config: ExperimentConfig, checkpoints_prefix: str = "checkpoint"):
     assert config.output_dir
 

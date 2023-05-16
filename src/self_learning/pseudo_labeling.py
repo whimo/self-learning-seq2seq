@@ -1,6 +1,8 @@
 from typing import Optional
 
 import logging
+import os
+import shutil
 import copy
 
 import numpy as np
@@ -12,6 +14,8 @@ from transformers import AutoModelForSeq2SeqLM, DataCollatorForSeq2Seq, Seq2SeqT
 
 from runexp import ExperimentConfig
 from models import ModelWrapper
+
+import runexp.training_helpers as train_help
 
 
 class Seq2SeqTrainerForPseudoLabeling(Seq2SeqTrainer):
@@ -114,6 +118,9 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
 
         logging.info("Starting training with pseudo labeling")
         n_epochs = training_arguments.num_train_epochs
+        best_eval_results = None
+        best_checkpoint_path = os.path.join(config.output_dir, "checkpoint-pl")
+
         for epoch in range(n_epochs + 1):
             # 0th epoch is supervised training without pseudo labeling
             if epoch == 0:
@@ -149,7 +156,12 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
             train_data_with_pseudo_labeled = self.remove_excess_columns(train_data_with_pseudo_labeled)
 
             logging.info("Training using existing data")
-            training_arguments.num_train_epochs = 1 if epoch > 0 else supervised_epochs
+            if epoch > 0:
+                training_arguments.num_train_epochs = 1
+                training_arguments.evaluation_strategy = "no"
+            else:
+                training_arguments.num_train_epochs = supervised_epochs
+
             trainer = self.hf_trainer_class(
                 model=self.model,
                 args=training_arguments,
@@ -158,8 +170,19 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
                 data_collator=data_collator,
                 compute_metrics=compute_metrics_fn
             )
-
             trainer.train()
+
+            eval_results = trainer.evaluate()
+            if best_eval_results is None or train_help.is_better_result(old_results=best_eval_results, new_results=eval_results,
+                                                                        metric_name=config.validation_metric):
+                best_eval_results = eval_results
+
+                if os.path.exists(best_checkpoint_path):
+                    shutil.rmtree(best_checkpoint_path)
+                trainer.save_model(output_dir=best_checkpoint_path)
+
+        self.model = self.hf_model_class.from_pretrained(best_checkpoint_path)
+        trainer.model = self.model
 
         logging.info("Starting evaluation")
         trainer.compute_metrics = compute_metrics_fn_final
