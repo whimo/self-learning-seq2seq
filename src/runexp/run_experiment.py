@@ -64,6 +64,7 @@ def prepare_experiment_context(config: ExperimentConfig, dataset: Optional[Datas
             dataset.augment(augmentation_type=config.self_learning_params.augmentation_type,
                             augmenter_kwargs=config.self_learning_params.augmenter_kwargs,
                             augmentation_scale=config.self_learning_params.augmentation_scale,
+                            do_augment_targets=config.self_learning_params.do_augment_targets,
                             random_seed=config.random_seed,
                             device=config.cuda_device)
 
