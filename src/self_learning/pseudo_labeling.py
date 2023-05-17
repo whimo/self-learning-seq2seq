@@ -107,6 +107,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
         data_collator = self.get_data_collator()
         train_data = train_data.map(lambda row: {"weight": 1.0})
         supervised_epochs = config.self_learning_params.pseudo_labeling_args.get("supervised_epochs", 0)
+        iterative = config.self_learning_params.pseudo_labeling_args.get("iterative", True)
         training_arguments.remove_unused_columns = False
         trainer = None
         pseudo_labeled_data = None
@@ -130,7 +131,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
             else:
                 logging.info("Pseudo-labeling epoch %s of %s", epoch, n_epochs)
 
-            if epoch > 0:
+            if epoch > 0 and (iterative or epoch == 1):
                 logging.info("Generating pseudo labels")
                 if "labels" in unlabeled_data.features:
                     unlabeled_data = unlabeled_data.remove_columns("labels")
@@ -159,6 +160,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
             if epoch > 0:
                 training_arguments.num_train_epochs = 1
                 training_arguments.evaluation_strategy = "no"
+                training_arguments.save_total_limit = None
             else:
                 training_arguments.num_train_epochs = supervised_epochs
 
@@ -182,7 +184,7 @@ class ModelWrapperForPseudoLabeling(ModelWrapper):
                 trainer.save_model(output_dir=best_checkpoint_path)
 
         self.model = self.hf_model_class.from_pretrained(best_checkpoint_path)
-        trainer.model = self.model
+        trainer.model = self.model.cuda()
 
         logging.info("Starting evaluation")
         trainer.compute_metrics = compute_metrics_fn_final
