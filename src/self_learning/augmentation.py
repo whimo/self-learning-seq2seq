@@ -27,11 +27,13 @@ class AugmentedDatasetWrapper(DatasetWrapper):
         self.preprocessed_aug_dataset = None
 
     def augment(self, augmentation_type: str, augmenter_kwargs: Optional[dict], random_seed: int,
-                augmentation_scale: float = 1.0, device: Optional[str] = None, do_augment_targets: bool = False):
+                augmentation_scale: float = 1.0, device: Optional[str] = None,
+                do_augment_inputs: bool = True, do_augment_targets: bool = False):
         augmenter = self.get_augmenter(augmentation_type=augmentation_type, augmenter_kwargs=augmenter_kwargs, device=device)
 
         def augment_fn(data):
-            data[self.input_field] = augmenter.augment(data[self.input_field])
+            if do_augment_inputs:
+                data[self.input_field] = augmenter.augment(data[self.input_field])
             if do_augment_targets:
                 data[self.target_field] = augmenter.augment(data[self.target_field])
             return data

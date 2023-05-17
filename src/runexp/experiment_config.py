@@ -34,6 +34,7 @@ class SelfLearningParams:
 
     augmentation_type: Optional[str] = None
     augmentation_scale: float = 1.0
+    do_augment_inputs: bool = True
     do_augment_targets: bool = False
     augmenter_kwargs: Optional[dict] = None
 
